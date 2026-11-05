@@ -3,7 +3,8 @@ import '../../core/tema.dart';
 import '../../core/usage_service.dart';
 
 class DistractionSettingsPage extends StatefulWidget {
-  const DistractionSettingsPage({super.key});
+  final bool embedded;
+  const DistractionSettingsPage({super.key, this.embedded = false});
 
   @override
   State<DistractionSettingsPage> createState() => _DistractionSettingsPageState();
@@ -53,16 +54,13 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colores.noche,
-      appBar: AppBar(
-        title: Text('CONTROL DE DISTRACCIONES', style: hud(11, color: Colores.luna)),
-        centerTitle: true,
-      ),
-      body: cargando
-          ? const Center(child: CircularProgressIndicator(color: Colores.sol))
-          : ListView(
-              padding: const EdgeInsets.all(16),
+    final contenido = cargando
+        ? const Center(child: CircularProgressIndicator(color: Colores.sol))
+        : RefreshIndicator(
+            onRefresh: cargar,
+            color: Colores.sol,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, widget.embedded ? 100 : 20),
               children: [
                 // Tarjeta de Permiso y Privacidad
                 TarjetaJuego(
@@ -244,6 +242,19 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                 ],
               ],
             ),
+          );
+
+    if (widget.embedded) {
+      return contenido;
+    }
+
+    return Scaffold(
+      backgroundColor: Colores.noche,
+      appBar: AppBar(
+        title: Text('CONTROL DE DISTRACCIONES', style: hud(11, color: Colores.luna)),
+        centerTitle: true,
+      ),
+      body: contenido,
     );
   }
 }

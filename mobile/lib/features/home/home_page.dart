@@ -464,6 +464,9 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     }
+    if (pestana == 3) {
+      return const DistractionSettingsPage(embedded: true);
+    }
     if (pestana == 2) {
       return ProgressView(
         xp: xpTotal(tareas),
@@ -524,13 +527,13 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.shield_outlined, color: Colores.cian),
+            icon: Icon(
+              pestana == 3 ? Icons.shield_rounded : Icons.shield_outlined,
+              color: pestana == 3 ? Colores.sol : Colores.cian,
+            ),
             tooltip: 'Control de distracciones',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => const DistractionSettingsPage()),
-              );
+              setState(() => pestana = 3);
             },
           ),
           IconButton(
@@ -573,14 +576,16 @@ class _HomePageState extends State<HomePage> {
           Expanded(child: cuerpo()),
         ],
       ),
-      floatingActionButton: BotonJuego(
-        texto: 'Nueva misión',
-        icono: Icons.add_rounded,
-        color: Colores.violeta,
-        sombra: Colores.violetaSombra,
-        expandir: false,
-        onPressed: creando ? null : nuevaTarea,
-      ),
+      floatingActionButton: pestana == 0
+          ? BotonJuego(
+              texto: 'Nueva misión',
+              icono: Icons.add_rounded,
+              color: Colores.violeta,
+              sombra: Colores.violetaSombra,
+              expandir: false,
+              onPressed: creando ? null : nuevaTarea,
+            )
+          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: pestana,
         onDestinationSelected: (i) => setState(() => pestana = i),
@@ -590,6 +595,10 @@ class _HomePageState extends State<HomePage> {
           NavigationDestination(icon: Icon(Icons.map_rounded), label: 'Mapa'),
           NavigationDestination(
               icon: Icon(Icons.emoji_events_rounded), label: 'Logros'),
+          NavigationDestination(
+              icon: Icon(Icons.shield_outlined),
+              selectedIcon: Icon(Icons.shield_rounded),
+              label: 'Bloqueo'),
         ],
       ),
     );

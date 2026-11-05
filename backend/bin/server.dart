@@ -13,13 +13,15 @@ final env = Platform.environment;
 Future<Connection> abrirConexion() {
   return Connection.open(
     Endpoint(
-      host: env['DB_HOST']!,
-      port: int.parse(env['DB_PORT']!),
-      database: env['POSTGRES_DB']!,
-      username: env['POSTGRES_USER']!,
-      password: env['POSTGRES_PASSWORD']!,
+      host: env['DB_HOST'] ?? env['PGHOST'] ?? 'localhost',
+      port: int.tryParse(env['DB_PORT'] ?? env['PGPORT'] ?? '5432') ?? 5432,
+      database: env['POSTGRES_DB'] ?? env['PGDATABASE'] ?? 'infocusmind',
+      username: env['POSTGRES_USER'] ?? env['PGUSER'] ?? 'postgres',
+      password: env['POSTGRES_PASSWORD'] ?? env['PGPASSWORD'] ?? 'postgres',
     ),
-    settings: const ConnectionSettings(sslMode: SslMode.disable),
+    settings: ConnectionSettings(
+      sslMode: env['PGSSLMODE'] == 'require' ? SslMode.require : SslMode.disable,
+    ),
   );
 }
 

@@ -15,6 +15,10 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
   bool cargando = true;
   List<AppInfo> apps = [];
   Set<String> distractoras = {};
+  Set<String> utiles = {};
+  int modoLista = 0; // 0 = Apps Útiles para Launcher, 1 = Apps Distractoras
+  final busquedaCtrl = TextEditingController();
+  String filtro = '';
 
   @override
   void initState() {
@@ -22,10 +26,17 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
     cargar();
   }
 
+  @override
+  void dispose() {
+    busquedaCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> cargar() async {
     setState(() => cargando = true);
     final permiso = await UsageService.tienePermiso();
     final seleccionadas = await UsageService.obtenerAppsDistractoras();
+    final seleccionadasUtiles = await UsageService.obtenerAppsUtiles();
     List<AppInfo> listaApps = [];
 
     if (permiso) {
@@ -36,19 +47,35 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
     setState(() {
       tienePermiso = permiso;
       distractoras = seleccionadas.toSet();
+      utiles = seleccionadasUtiles.toSet();
       apps = listaApps;
       cargando = false;
     });
   }
 
-  Future<void> alternarApp(String package) async {
+  Future<void> alternarAppDistractora(String package) async {
     setState(() {
       if (distractoras.contains(package)) {
         distractoras.remove(package);
       } else {
         distractoras.add(package);
+        utiles.remove(package);
       }
     });
+    await UsageService.guardarAppsDistractoras(distractoras.toList());
+    await UsageService.guardarAppsUtiles(utiles.toList());
+  }
+
+  Future<void> alternarAppUtil(String package) async {
+    setState(() {
+      if (utiles.contains(package)) {
+        utiles.remove(package);
+      } else {
+        utiles.add(package);
+        distractoras.remove(package);
+      }
+    });
+    await UsageService.guardarAppsUtiles(utiles.toList());
     await UsageService.guardarAppsDistractoras(distractoras.toList());
   }
 
@@ -182,37 +209,138 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
 
                 const SizedBox(height: 20),
 
-                // Lista de apps para seleccionar distracciones
+                // Selector de modo: Apps Útiles (Launcher) vs Apps Distractoras
                 if (tienePermiso) ...[
-                  Row(
-                    children: [
-                      Text('TUS APPS DISTRACTORAS', style: hud(9, color: Colores.luna)),
-                      const Spacer(),
-                      Text(
-                        '${distractoras.length} seleccionadas',
-                        style: const TextStyle(color: Colores.tenue, fontSize: 12),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colores.nocheClara,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colores.borde, width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => modoLista = 0),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: modoLista == 0 ? Colores.violeta : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.apps_rounded,
+                                      size: 16,
+                                      color: modoLista == 0 ? Colors.white : Colores.tenue,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'ÚTILES (${utiles.length})',
+                                      style: hud(8, color: modoLista == 0 ? Colors.white : Colores.tenue),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => modoLista = 1),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: modoLista == 1 ? Colores.coral : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.block_rounded,
+                                      size: 16,
+                                      color: modoLista == 1 ? Colors.white : Colores.tenue,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'DISTRACTORAS (${distractoras.length})',
+                                      style: hud(8, color: modoLista == 1 ? Colors.white : Colores.tenue),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Marca las aplicaciones que consideras una tentación o distracción para tus sesiones de estudio:',
-                    style: TextStyle(color: Colores.tenue, fontSize: 12),
-                  ),
+
                   const SizedBox(height: 12),
-                  for (final app in apps)
+
+                  // Explicación del modo activo
+                  Text(
+                    modoLista == 0
+                        ? 'Selecciona las apps autorizadas para tu estudio. Solo estas se mostrarán en el Launcher durante el Modo Focus (ej. Calculadora, Navegador, Libros...):'
+                        : 'Marca las aplicaciones que consideras una tentación o distracción. Si las abres durante tu sesión de foco, quedarán registradas:',
+                    style: const TextStyle(color: Colores.tenue, fontSize: 12, height: 1.25),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Buscador de apps
+                  TextField(
+                    controller: busquedaCtrl,
+                    onChanged: (v) => setState(() => filtro = v.trim().toLowerCase()),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: 'Buscar aplicación...',
+                      prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Colores.tenue),
+                      suffixIcon: filtro.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              onPressed: () {
+                                busquedaCtrl.clear();
+                                setState(() => filtro = '');
+                              },
+                            )
+                          : null,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Lista filtrada de aplicaciones
+                  for (final app in apps.where((a) =>
+                      filtro.isEmpty ||
+                      a.name.toLowerCase().contains(filtro) ||
+                      a.package.toLowerCase().contains(filtro)))
                     Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: distractoras.contains(app.package)
-                              ? Colores.coral.withValues(alpha: 0.12)
-                              : Colores.nocheClara,
+                          color: modoLista == 0
+                              ? (utiles.contains(app.package)
+                                  ? Colores.violeta.withValues(alpha: 0.18)
+                                  : Colores.nocheClara)
+                              : (distractoras.contains(app.package)
+                                  ? Colores.coral.withValues(alpha: 0.15)
+                                  : Colores.nocheClara),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: distractoras.contains(app.package)
-                                ? Colores.coral
-                                : Colores.borde,
+                            color: modoLista == 0
+                                ? (utiles.contains(app.package)
+                                    ? Colores.cian
+                                    : Colores.borde)
+                                : (distractoras.contains(app.package)
+                                    ? Colores.coral
+                                    : Colores.borde),
                             width: 1.2,
                           ),
                         ),
@@ -223,19 +351,25 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: distractoras.contains(app.package)
-                                  ? Colores.luna
-                                  : Colores.luna.withValues(alpha: 0.85),
+                              color: Colores.luna,
                             ),
                           ),
                           subtitle: Text(
                             app.package,
                             style: const TextStyle(color: Colores.tenue, fontSize: 10),
                           ),
-                          activeColor: Colores.coral,
-                          checkColor: Colors.white,
-                          value: distractoras.contains(app.package),
-                          onChanged: (_) => alternarApp(app.package),
+                          activeColor: modoLista == 0 ? Colores.cian : Colores.coral,
+                          checkColor: Colores.noche,
+                          value: modoLista == 0
+                              ? utiles.contains(app.package)
+                              : distractoras.contains(app.package),
+                          onChanged: (_) {
+                            if (modoLista == 0) {
+                              alternarAppUtil(app.package);
+                            } else {
+                              alternarAppDistractora(app.package);
+                            }
+                          },
                         ),
                       ),
                     ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/modelos.dart';
 import '../../core/tema.dart';
+import '../../core/usage_service.dart';
 
 class ProgressView extends StatefulWidget {
   final int xp;
@@ -32,9 +33,15 @@ class _ProgressViewState extends State<ProgressView> {
       final r = await dio.get('/stats/summary', queryParameters: {
         'tz': DateTime.now().timeZoneOffset.inMinutes,
       });
+      final loc = await UsageService.obtenerDistraccionesLocales();
       if (!mounted) return;
+      final serverMap = Map<String, dynamic>.from(r.data);
+      final distList = (serverMap['distractions'] as List?) ?? [];
+      if (distList.isEmpty && loc.isNotEmpty) {
+        serverMap['distractions'] = loc;
+      }
       setState(() {
-        datos = Map<String, dynamic>.from(r.data);
+        datos = serverMap;
         error = null;
       });
     } on DioException catch (e) {
@@ -324,6 +331,288 @@ class _ProgressViewState extends State<ProgressView> {
     );
   }
 
+  Widget _seccionAvanceTareas() {
+    final tareas = (datos!['tasks_progress'] as List?) ?? [];
+    return TarjetaJuego(
+      borde: Colores.cian,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.analytics_rounded, color: Colores.cian, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('AVANCE DE CADA MISIÓN', style: hud(9, color: Colores.luna)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colores.cian.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('${tareas.length} MISIONES', style: hud(7, color: Colores.cian)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Progreso detallado y minutos invertidos en tus misiones:',
+            style: TextStyle(color: Colores.tenue, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          if (tareas.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Text(
+                  'No tienes misiones registradas aún.',
+                  style: TextStyle(color: Colores.tenue, fontSize: 13),
+                ),
+              ),
+            )
+          else
+            for (final t in tareas) ...[
+              Builder(builder: (ctx) {
+                final totalSteps = (t['total_steps'] as num?)?.toInt() ?? 0;
+                final doneSteps = (t['done_steps'] as num?)?.toInt() ?? 0;
+                final totalMins = (t['total_minutes'] as num?)?.toInt() ?? 0;
+                final doneMins = (t['done_minutes'] as num?)?.toInt() ?? 0;
+                final status = (t['status'] ?? '').toString();
+                final completa = status == 'done' || (totalSteps > 0 && doneSteps >= totalSteps);
+                final enProgreso = !completa && doneSteps > 0;
+                final fecha = t['scheduled_date']?.toString();
+                final ratio = totalSteps == 0 ? 0.0 : (doneSteps / totalSteps).clamp(0.0, 1.0);
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: completa
+                        ? Colores.menta.withValues(alpha: 0.08)
+                        : Colores.noche,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: completa
+                          ? Colores.menta.withValues(alpha: 0.6)
+                          : (enProgreso ? Colores.bordeBrillante : Colores.borde),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: completa
+                                  ? Colores.menta
+                                  : (enProgreso ? Colores.cian : Colores.nocheClara),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              completa ? 'LOGRADA' : (enProgreso ? 'EN FOCO' : 'PENDIENTE'),
+                              style: hud(6, color: completa ? Colores.noche : (enProgreso ? Colores.noche : Colores.tenue)),
+                            ),
+                          ),
+                          if (fecha != null && fecha.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colores.violeta.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(3),
+                                border: Border.all(color: Colores.violeta.withValues(alpha: 0.5), width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.calendar_month_rounded, size: 10, color: Colores.sol),
+                                  const SizedBox(width: 3),
+                                  Text(fecha, style: const TextStyle(color: Colores.luna, fontSize: 10, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
+                            ),
+                          ],
+                          const Spacer(),
+                          Text(
+                            '${(ratio * 100).round()}%',
+                            style: hud(9, color: completa ? Colores.menta : Colores.sol),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        (t['title'] ?? '').toString(),
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colores.luna),
+                      ),
+                      const SizedBox(height: 8),
+                      BarraJuego(valor: ratio, color: completa ? Colores.menta : Colores.cian, alto: 7),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Text(
+                            '$doneSteps de $totalSteps pasos',
+                            style: const TextStyle(color: Colores.tenue, fontSize: 12),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '$doneMins de $totalMins min foco',
+                            style: const TextStyle(color: Colores.sol, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+        ],
+      ),
+    );
+  }
+
+  Widget _seccionAppsDistractoras() {
+    final distracciones = (datos!['distractions'] as List?) ?? [];
+    final totalSegs = distracciones.fold<int>(0, (sum, d) => sum + ((d['seconds'] as num?)?.toInt() ?? 0));
+    final totalMins = (totalSegs / 60).ceil();
+
+    return TarjetaJuego(
+      borde: distracciones.isEmpty ? Colores.menta : Colores.coral,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                distracciones.isEmpty ? Icons.verified_user_rounded : Icons.shield_outlined,
+                color: distracciones.isEmpty ? Colores.menta : Colores.coral,
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'APLICACIONES DISTRACTORAS',
+                  style: hud(9, color: distracciones.isEmpty ? Colores.menta : Colores.coral),
+                ),
+              ),
+              if (distracciones.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colores.coral.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colores.coral, width: 1),
+                  ),
+                  child: Text('$totalMins MIN PERDIDOS', style: hud(7, color: Colores.coral)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (distracciones.isEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colores.menta.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colores.menta.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Colores.menta, size: 28),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      '¡Excelente disciplina! No se registraron aplicaciones distractoras durante tus sesiones de enfoque.',
+                      style: TextStyle(color: Colores.luna, fontSize: 13, height: 1.25),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            const Text(
+              'Aplicaciones que interrumpieron o consumieron tu atención mientras estudiabas:',
+              style: TextStyle(color: Colores.tenue, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            for (final d in distracciones) ...[
+              Builder(builder: (ctx) {
+                final nom = (d['name'] ?? d['package'] ?? 'Desconocida').toString();
+                final segs = (d['seconds'] as num?)?.toInt() ?? 0;
+                final mins = (segs / 60).ceil();
+                final count = (d['count'] as num?)?.toInt() ?? 1;
+                final inicial = nom.isNotEmpty ? nom.substring(0, 1).toUpperCase() : '?';
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colores.noche,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colores.borde, width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: Colores.coral.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colores.coral.withValues(alpha: 0.6), width: 1),
+                        ),
+                        child: Center(
+                          child: Text(inicial, style: hud(12, color: Colores.coral)),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              nom,
+                              style: const TextStyle(color: Colores.luna, fontWeight: FontWeight.w700, fontSize: 14),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Detectada en $count ${count == 1 ? 'sesión' : 'sesiones'}',
+                              style: const TextStyle(color: Colores.tenue, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colores.coral.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colores.coral.withValues(alpha: 0.5), width: 1),
+                        ),
+                        child: Text(
+                          '$mins min',
+                          style: hud(8, color: Colores.coral),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+            const SizedBox(height: 6),
+            const Text(
+              '💡 Consejo: Puedes bloquear estas aplicaciones o activar el Launcher en la pestaña Bloqueo.',
+              style: TextStyle(color: Colores.tenue, fontSize: 11, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (error != null && datos == null) {
@@ -367,6 +656,10 @@ class _ProgressViewState extends State<ProgressView> {
           ),
           const SizedBox(height: 14),
           _ritmo(),
+          const SizedBox(height: 14),
+          _seccionAvanceTareas(),
+          const SizedBox(height: 14),
+          _seccionAppsDistractoras(),
           const SizedBox(height: 14),
           _logros(racha),
         ],

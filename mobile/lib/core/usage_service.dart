@@ -35,6 +35,8 @@ class UsageService {
   static const _canal = MethodChannel('com.infocusmind.mobile/usage');
   static const _almacen = FlutterSecureStorage();
   static const _claveDistractoras = 'apps_distractoras';
+  static const _claveUtiles = 'apps_utiles';
+  static const _claveHistorialDistracciones = 'historial_distracciones';
 
   /// Comprueba si el usuario ya concedió el permiso de "Acceso a datos de uso".
   static Future<bool> tienePermiso() async {
@@ -101,6 +103,85 @@ class UsageService {
   /// Guarda la lista de paquetes marcados como distracciones.
   static Future<void> guardarAppsDistractoras(List<String> paquetes) async {
     await _almacen.write(key: _claveDistractoras, value: jsonEncode(paquetes));
+  }
+
+  /// Carga los paquetes seleccionados explícitamente como "Herramientas Útiles" para el Launcher de foco.
+  static Future<List<String>> obtenerAppsUtiles() async {
+    final raw = await _almacen.read(key: _claveUtiles);
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.map((e) => e.toString()).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Guarda los paquetes seleccionados como "Herramientas Útiles" para el Launcher de foco.
+  static Future<void> guardarAppsUtiles(List<String> paquetes) async {
+    await _almacen.write(key: _claveUtiles, value: jsonEncode(paquetes));
+  }
+
+  /// Devuelve las aplicaciones que se mostrarán en el Launcher durante el Modo Focus:
+  /// - Si el usuario seleccionó "Apps útiles", muestra esas apps.
+  /// - Si no seleccionó útiles, muestra todas las apps instaladas MENOS las distractoras.
+  static Future<List<AppInfo>> obtenerAppsPermitidasParaLauncher() async {
+    final todas = await obtenerAppsInstaladas();
+    final utiles = (await obtenerAppsUtiles()).toSet();
+    if (utiles.isNotEmpty) {
+      return todas.where((a) => utiles.contains(a.package)).toList();
+    }
+    final distractoras = (await obtenerAppsDistractoras()).toSet();
+    return todas.where((a) => !distractoras.contains(a.package)).toList();
+  }
+
+  /// Registra localmente las aplicaciones que se usaron como distracción durante una sesión.
+  static Future<void> registrarDistraccionLocal(List<AppUso> distracciones) async {
+    if (distracciones.isEmpty) return;
+    try {
+      final raw = await _almacen.read(key: _claveHistorialDistracciones);
+      final List<dynamic> actual = raw != null && raw.isNotEmpty ? jsonDecode(raw) : [];
+      final ahora = DateTime.now().toIso8601String();
+      for (final d in distracciones) {
+        actual.add({
+          'package': d.package,
+          'name': d.name,
+          'seconds': d.seconds,
+          'date': ahora,
+        });
+      }
+      // Guardar máximo últimos 100 registros
+      final recortado = actual.length > 100 ? actual.sublist(actual.length - 100) : actual;
+      await _almacen.write(key: _claveHistorialDistracciones, value: jsonEncode(recortado));
+    } catch (e) {
+      debugPrint('Error guardando distracciones locales: $e');
+    }
+  }
+
+  /// Obtiene un resumen consolidado de las distracciones registradas en el dispositivo.
+  static Future<List<Map<String, dynamic>>> obtenerDistraccionesLocales() async {
+    try {
+      final raw = await _almacen.read(key: _claveHistorialDistracciones);
+      if (raw == null || raw.isEmpty) return [];
+      final List<dynamic> lista = jsonDecode(raw);
+      final mapa = <String, Map<String, dynamic>>{};
+      for (final item in lista) {
+        final pkg = item['package']?.toString() ?? '';
+        final nom = item['name']?.toString() ?? pkg;
+        final segs = (item['seconds'] as num?)?.toInt() ?? 0;
+        if (pkg.isEmpty || segs <= 0) continue;
+        if (!mapa.containsKey(pkg)) {
+          mapa[pkg] = {'package': pkg, 'name': nom, 'seconds': 0, 'count': 0};
+        }
+        mapa[pkg]!['seconds'] = (mapa[pkg]!['seconds'] as int) + segs;
+        mapa[pkg]!['count'] = (mapa[pkg]!['count'] as int) + 1;
+      }
+      final res = mapa.values.toList();
+      res.sort((a, b) => (b['seconds'] as int).compareTo(a['seconds'] as int));
+      return res;
+    } catch (_) {
+      return [];
+    }
   }
 
   /// Muestra o actualiza la notificación persistente del temporizador de enfoque.

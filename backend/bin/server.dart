@@ -128,6 +128,17 @@ Future<void> crearTablas() async {
           counts_for_learning BOOLEAN NOT NULL DEFAULT false
         )
       ''');
+      await conn.execute('''
+        CREATE TABLE IF NOT EXISTS distraction_logs (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          session_id INTEGER REFERENCES focus_sessions(id) ON DELETE SET NULL,
+          package_name TEXT NOT NULL,
+          app_name TEXT NOT NULL,
+          seconds INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      ''');
       await conn.close();
       print('Tablas de PostgreSQL listas y verificadas.');
       return;
@@ -1029,6 +1040,30 @@ void main() async {
           );
         }
 
+        final crudosDistracciones = (data['distractions'] as List?) ?? [];
+        for (final d in crudosDistracciones) {
+          if (d is Map) {
+            final pkg = (d['package'] ?? '').toString().trim();
+            final nom = (d['name'] ?? pkg).toString().trim();
+            final segs = (d['seconds'] is num ? (d['seconds'] as num).round() : 0).clamp(0, 86400).toInt();
+            if (pkg.isNotEmpty && segs > 0) {
+              await conn.execute(
+                Sql.named(
+                  'INSERT INTO distraction_logs (user_id, session_id, package_name, app_name, seconds) '
+                  'VALUES (@u, @sid, @pkg, @nom, @segs)',
+                ),
+                parameters: {
+                  'u': userId,
+                  'sid': sid,
+                  'pkg': pkg,
+                  'nom': nom.length > 100 ? nom.substring(0, 100) : nom,
+                  'segs': segs,
+                },
+              );
+            }
+          }
+        }
+
         return json(200, {
           'counts': cuenta,
           'elapsed_seconds': transcurrido,
@@ -1149,6 +1184,51 @@ void main() async {
           parameters: {'u': userId},
         );
 
+        final distQuery = await conn.execute(
+          Sql.named(
+            'SELECT app_name, package_name, coalesce(sum(seconds), 0)::int, count(*)::int '
+            'FROM distraction_logs WHERE user_id = @u '
+            'GROUP BY app_name, package_name ORDER BY sum(seconds) DESC LIMIT 10',
+          ),
+          parameters: {'u': userId},
+        );
+        final distraccionesRes = [
+          for (final d in distQuery)
+            {
+              'name': d[0] as String,
+              'package': d[1] as String,
+              'seconds': d[2] as int,
+              'count': d[3] as int,
+            }
+        ];
+
+        final tasksQuery = await conn.execute(
+          Sql.named(
+            'SELECT t.id, t.title, t.status, t.scheduled_date, '
+            'count(s.id)::int, '
+            'coalesce(sum(case when s.done then 1 else 0 end), 0)::int, '
+            'coalesce(sum(s.est_minutes), 0)::int, '
+            'coalesce(sum(case when s.done then s.est_minutes else 0 end), 0)::int '
+            'FROM tasks t LEFT JOIN task_steps s ON s.task_id = t.id '
+            'WHERE t.user_id = @u GROUP BY t.id, t.title, t.status, t.scheduled_date '
+            'ORDER BY t.id DESC LIMIT 30',
+          ),
+          parameters: {'u': userId},
+        );
+        final tareasProgreso = [
+          for (final t in tasksQuery)
+            {
+              'id': t[0] as int,
+              'title': t[1] as String,
+              'status': t[2] as String,
+              'scheduled_date': t[3],
+              'total_steps': t[4] as int,
+              'done_steps': t[5] as int,
+              'total_minutes': t[6] as int,
+              'done_minutes': t[7] as int,
+            }
+        ];
+
         final ajuste = await ajusteDe(conn, userId);
         return json(200, {
           'sessions': sesiones,
@@ -1159,6 +1239,8 @@ void main() async {
           'factor': ajuste.factor,
           'learning_sessions': ajuste.sesiones,
           'active': ajuste.sesiones >= 3,
+          'distractions': distraccionesRes,
+          'tasks_progress': tareasProgreso,
         });
       } finally {
         await conn.close();

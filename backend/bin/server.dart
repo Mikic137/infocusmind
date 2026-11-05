@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
@@ -342,7 +342,18 @@ void main() async {
       await conn.close();
       return json(200, {'status': 'ok', 'db': 'connected'});
     } catch (e) {
-      return json(500, {'error': 'db'});
+      return json(500, {
+        'error': 'db',
+        'details': e.toString(),
+        'diag': {
+          'host': env['DB_HOST'] ?? env['PGHOST'] ?? '(null)',
+          'port': env['DB_PORT'] ?? env['PGPORT'] ?? '(null)',
+          'db': env['POSTGRES_DB'] ?? env['PGDATABASE'] ?? '(null)',
+          'user': env['POSTGRES_USER'] ?? env['PGUSER'] ?? '(null)',
+          'has_pw': (env['POSTGRES_PASSWORD'] ?? env['PGPASSWORD']) != null,
+          'has_url': env['DATABASE_URL'] != null,
+        }
+      });
     }
   });
 

@@ -12,7 +12,8 @@ class Tarea {
   final int id;
   final String titulo;
   final List<Paso> pasos;
-  Tarea(this.id, this.titulo, this.pasos);
+  final String? fechaProgramada;
+  Tarea(this.id, this.titulo, this.pasos, {this.fechaProgramada});
 
   int get hechos => pasos.where((p) => p.hecho).length;
   int get minutosTotales => pasos.fold(0, (s, p) => s + p.minutos);

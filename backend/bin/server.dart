@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
@@ -94,10 +94,16 @@ Future<void> crearTablas() async {
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           title TEXT NOT NULL,
           details TEXT NOT NULL DEFAULT '',
+          scheduled_date TEXT,
           status TEXT NOT NULL DEFAULT 'pending',
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       ''');
+      try {
+        await conn.execute('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS scheduled_date TEXT');
+      } catch (e) {
+        print('Aviso al verificar columna scheduled_date: $e');
+      }
       await conn.execute('''
         CREATE TABLE IF NOT EXISTS task_steps (
           id SERIAL PRIMARY KEY,
@@ -625,6 +631,8 @@ void main() async {
       final data = jsonDecode(await request.readAsString());
       var titulo = (data['title'] ?? '').toString().trim();
       var detalles = (data['details'] ?? '').toString().trim();
+      var scheduledDate = (data['scheduled_date'] ?? '').toString().trim();
+      final sdParam = scheduledDate.isEmpty ? null : scheduledDate;
       if (titulo.isEmpty) {
         return json(400, {'error': 'Escribe el nombre de la tarea'});
       }
@@ -687,10 +695,10 @@ void main() async {
         final taskId = await conn.runTx((tx) async {
           final r = await tx.execute(
             Sql.named(
-              'INSERT INTO tasks (user_id, title, details) '
-              'VALUES (@u, @t, @d) RETURNING id',
+              'INSERT INTO tasks (user_id, title, details, scheduled_date) '
+              'VALUES (@u, @t, @d, @sd) RETURNING id',
             ),
-            parameters: {'u': userId, 't': titulo, 'd': detalles},
+            parameters: {'u': userId, 't': titulo, 'd': detalles, 'sd': sdParam},
           );
           final id = r.first[0] as int;
           for (var i = 0; i < pasos.length; i++) {
@@ -723,6 +731,82 @@ void main() async {
       return json(500, {'error': 'No se pudo crear la tarea'});
     }
   });
+
+  router.post('/tasks/manual', (Request request) async {
+    final userId = usuarioDe(request);
+    if (userId == null) return json(401, {'error': 'Sesión no válida'});
+    try {
+      final data = jsonDecode(await request.readAsString());
+      var titulo = (data['title'] ?? '').toString().trim();
+      var detalles = (data['details'] ?? '').toString().trim();
+      var scheduledDate = (data['scheduled_date'] ?? '').toString().trim();
+      final sdParam = scheduledDate.isEmpty ? null : scheduledDate;
+      var minutos = (data['minutes'] is num ? (data['minutes'] as num).round() : 25)
+          .clamp(1, 480)
+          .toInt();
+
+      if (titulo.isEmpty) {
+        return json(400, {'error': 'Escribe el nombre de la misión'});
+      }
+      if (titulo.length > 200) titulo = titulo.substring(0, 200);
+      if (detalles.length > 500) detalles = detalles.substring(0, 500);
+
+      final crudos = (data['steps'] as List?) ?? [];
+      final pasos = <Map<String, dynamic>>[];
+      if (crudos.isNotEmpty) {
+        for (final p in crudos.take(15)) {
+          final t = (p['title'] ?? '').toString().trim();
+          if (t.isEmpty) continue;
+          final m = (p['minutes'] is num ? (p['minutes'] as num).round() : 20)
+              .clamp(1, 240)
+              .toInt();
+          pasos.add({
+            'title': t.length > 150 ? t.substring(0, 150) : t,
+            'minutes': m,
+          });
+        }
+      }
+
+      if (pasos.isEmpty) {
+        pasos.add({'title': titulo, 'minutes': minutos});
+      }
+
+      final conn = await abrirConexion();
+      try {
+        final taskId = await conn.runTx((tx) async {
+          final r = await tx.execute(
+            Sql.named(
+              'INSERT INTO tasks (user_id, title, details, scheduled_date) '
+              'VALUES (@u, @t, @d, @sd) RETURNING id',
+            ),
+            parameters: {'u': userId, 't': titulo, 'd': detalles, 'sd': sdParam},
+          );
+          final id = r.first[0] as int;
+          for (var i = 0; i < pasos.length; i++) {
+            await tx.execute(
+              Sql.named(
+                'INSERT INTO task_steps (task_id, position, title, est_minutes) '
+                'VALUES (@tid, @pos, @t, @m)',
+              ),
+              parameters: {
+                'tid': id,
+                'pos': i,
+                't': pasos[i]['title'],
+                'm': pasos[i]['minutes'],
+              },
+            );
+          }
+          return id;
+        });
+        return json(201, {'id': taskId});
+      } finally {
+        await conn.close();
+      }
+    } catch (e) {
+      print('Error en POST /tasks/manual: $e');
+      return json(500, {'error': 'No se pudo crear la misión manual'});
+    }
+  });
   router.get('/tasks', (Request request) async {
     final userId = usuarioDe(request);
     if (userId == null) return json(401, {'error': 'Sesión no válida'});
@@ -731,7 +815,7 @@ void main() async {
       try {
         final ts = await conn.execute(
           Sql.named(
-              'SELECT id, title, status FROM tasks WHERE user_id = @u ORDER BY id DESC'),
+              'SELECT id, title, status, scheduled_date FROM tasks WHERE user_id = @u ORDER BY id DESC'),
           parameters: {'u': userId},
         );
         final ss = await conn.execute(
@@ -757,6 +841,7 @@ void main() async {
               'id': t[0],
               'title': t[1],
               'status': t[2],
+              'scheduled_date': t[3],
               'steps': porTarea[t[0] as int] ?? [],
             }
         ];

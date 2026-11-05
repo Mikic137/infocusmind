@@ -5,7 +5,7 @@ const _almacen = FlutterSecureStorage();
 
 // 10.0.2.2 es la dirección con la que el emulador ve tu PC
 final dio = Dio(BaseOptions(
-  baseUrl: 'http://10.0.2.2:8080',
+  baseUrl: 'https://infocusmind-production.up.railway.app',
   connectTimeout: const Duration(seconds: 10),
   receiveTimeout: const Duration(seconds: 90),
 ))

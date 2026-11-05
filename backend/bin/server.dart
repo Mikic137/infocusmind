@@ -265,14 +265,20 @@ Future<Map<String, dynamic>> _llamarDeepSeek(
   }
 
   final uri = Uri.parse('https://api.deepseek.com/chat/completions');
-  final listaMensajes = [
+  final listaMensajes = <Map<String, String>>[
     {'role': 'system', 'content': instruccion},
-    for (final m in mensajes)
-      {
+  ];
+
+  if (mensajes.isEmpty) {
+    listaMensajes.add({'role': 'user', 'content': 'Hola, inicia la conversacion saludando'});
+  } else {
+    for (final m in mensajes) {
+      listaMensajes.add({
         'role': m['role'] == 'model' ? 'assistant' : 'user',
         'content': m['text'] ?? '',
-      }
-  ];
+      });
+    }
+  }
 
   final r = await http
       .post(
@@ -292,7 +298,7 @@ Future<Map<String, dynamic>> _llamarDeepSeek(
 
   if (r.statusCode != 200) {
     print('DeepSeek ${r.statusCode}: ${r.body}');
-    throw Exception('DeepSeek respondiÃ³ ${r.statusCode}: ${r.body}');
+    throw Exception('DeepSeek ${r.statusCode}: ${r.body}');
   }
 
   final data = jsonDecode(utf8.decode(r.bodyBytes));
@@ -303,12 +309,15 @@ Future<Map<String, dynamic>> _llamarDeepSeek(
 
 Future<Map<String, dynamic>> llamarGemini(
     List<Map<String, String>> mensajes, String instruccion) async {
+  var errores = '';
+
   // 1. Prioridad: DeepSeek
   if (env['DEEPSEEK_API_KEY'] != null && env['DEEPSEEK_API_KEY']!.trim().isNotEmpty) {
     try {
       print('Procesando peticion con DeepSeek (deepseek-chat)...');
       return await _llamarDeepSeek(mensajes, instruccion);
     } catch (e) {
+      errores += 'DeepSeek fallo: $e. ';
       print('DeepSeek fallo ($e). Probando alternativas...');
     }
   }
@@ -319,21 +328,22 @@ Future<Map<String, dynamic>> llamarGemini(
     final respaldo = env['GEMINI_FALLBACK_MODEL'] ?? 'gemini-2.5-flash';
     final modelos = [principal, respaldo];
 
-    Object? ultimoError;
     for (var i = 0; i < modelos.length; i++) {
       try {
         print('Procesando peticion con Gemini (${modelos[i]})...');
         return await _llamarGeminiUnaVez(mensajes, instruccion, modelos[i]);
       } catch (e) {
-        ultimoError = e;
+        errores += 'Gemini (${modelos[i]}) fallo: $e. ';
         print('Intento ${i + 1} (${modelos[i]}) fallÃ³: $e');
         if (i < modelos.length - 1) {
           await Future.delayed(Duration(seconds: i + 1));
         }
       }
     }
-    throw ultimoError!;
   }
+
+  throw Exception(errores.isNotEmpty ? errores : 'No hay proveedor de IA disponible');
+}
 
   throw Exception('No hay proveedor de IA configurado');
 }
@@ -544,7 +554,7 @@ void main() async {
       return json(200, {'reply': reply, 'done': terminado});
     } catch (e) {
       print('Error en /onboarding/chat: $e');
-      return json(500, {'error': 'No se pudo hablar con la IA'});
+      return json(500, {'error': 'Error de IA: '});
     }
   });
 

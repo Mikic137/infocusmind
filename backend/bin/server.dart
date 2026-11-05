@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
@@ -33,11 +33,12 @@ Future<Connection> abrirConexion() async {
       print('Error parseando DATABASE_URL: $e');
     }
   } else {
-    host = env['DB_HOST'] ?? env['PGHOST'] ?? 'localhost';
-    port = int.tryParse(env['DB_PORT'] ?? env['PGPORT'] ?? '5432') ?? 5432;
-    database = env['POSTGRES_DB'] ?? env['PGDATABASE'] ?? 'railway';
-    username = env['POSTGRES_USER'] ?? env['PGUSER'] ?? 'postgres';
-    password = env['POSTGRES_PASSWORD'] ?? env['PGPASSWORD'];
+    String? clean(String? v) => (v == null || v.trim().isEmpty) ? null : v.trim();
+    host = clean(env['DB_HOST']) ?? clean(env['PGHOST']) ?? 'postgres.railway.internal';
+    port = int.tryParse(clean(env['DB_PORT']) ?? clean(env['PGPORT']) ?? '') ?? 5432;
+    database = clean(env['POSTGRES_DB']) ?? clean(env['PGDATABASE']) ?? 'railway';
+    username = clean(env['POSTGRES_USER']) ?? clean(env['PGUSER']) ?? 'postgres';
+    password = clean(env['POSTGRES_PASSWORD']) ?? clean(env['PGPASSWORD']);
   }
 
   print('Intentando conectar a DB en: $host:$port/$database (user: $username)...');

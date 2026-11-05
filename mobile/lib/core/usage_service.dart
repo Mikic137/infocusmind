@@ -236,4 +236,38 @@ class UsageService {
       debugPrint('Error al abrir selector de launcher: $e');
     }
   }
+
+  /// Callback para cuando el usuario presiona el botón Home físico o gestual de Android.
+  static VoidCallback? onHomePressed;
+
+  /// Inicializa la escucha de eventos provenientes del canal nativo.
+  static void inicializarListeners() {
+    _canal.setMethodCallHandler((call) async {
+      if (call.method == 'onHomeButtonPressed') {
+        onHomePressed?.call();
+      }
+    });
+  }
+
+  /// Comprueba si InfocusMind está configurado actualmente como el Launcher predeterminado en Android.
+  static Future<bool> esLauncherPredeterminado() async {
+    try {
+      final res = await _canal.invokeMethod<bool>('isDefaultLauncher');
+      return res ?? false;
+    } on PlatformException catch (e) {
+      debugPrint('Error al verificar launcher predeterminado: $e');
+      return false;
+    }
+  }
+
+  /// Comprueba si la app fue abierta directamente desde el botón HOME del sistema.
+  static Future<bool> fueIniciadoDesdeHome() async {
+    try {
+      final res = await _canal.invokeMethod<bool>('wasLaunchedFromHome');
+      return res ?? false;
+    } on PlatformException catch (e) {
+      debugPrint('Error al verificar origen de inicio: $e');
+      return false;
+    }
+  }
 }

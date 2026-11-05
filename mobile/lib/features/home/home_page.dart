@@ -5,10 +5,12 @@ import '../../core/api_client.dart';
 import '../../core/auth_service.dart';
 import '../../core/modelos.dart';
 import '../../core/tema.dart';
+import '../../core/usage_service.dart';
 import '../assistant/assistant_view.dart';
 import '../auth/auth_page.dart';
 import '../distractions/distraction_settings_page.dart';
 import '../focus/focus_page.dart';
+import '../launcher/launcher_screen.dart';
 import '../roadmap/roadmap_view.dart';
 import '../progress/progress_view.dart';
 
@@ -24,11 +26,28 @@ class _HomePageState extends State<HomePage> {
   bool creando = false;
   String? error;
   int pestana = 0;
+  bool enModoLauncher = false;
 
   @override
   void initState() {
     super.initState();
     cargar();
+
+    UsageService.onHomePressed = () {
+      if (mounted) setState(() => enModoLauncher = true);
+    };
+
+    UsageService.fueIniciadoDesdeHome().then((desdeHome) {
+      if (desdeHome && mounted) {
+        setState(() => enModoLauncher = true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    UsageService.onHomePressed = null;
+    super.dispose();
   }
 
   void aviso(String texto) {
@@ -501,6 +520,12 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (enModoLauncher) {
+      return LauncherScreen(
+        onAbrirAppCompleta: () => setState(() => enModoLauncher = false),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
@@ -528,6 +553,13 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.home_rounded, color: Colores.cian),
+            tooltip: 'Pantalla de inicio (Launcher)',
+            onPressed: () {
+              setState(() => enModoLauncher = true);
+            },
+          ),
           IconButton(
             icon: Icon(
               pestana == 4 ? Icons.shield_rounded : Icons.shield_outlined,

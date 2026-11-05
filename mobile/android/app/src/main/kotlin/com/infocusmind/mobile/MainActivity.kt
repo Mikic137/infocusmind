@@ -25,16 +25,34 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.infocusmind.mobile/usage"
     private val NOTIF_CHANNEL_ID = "infocusmind_focus_session"
     private val NOTIF_ID = 1001
+    private var methodChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
         createNotificationChannel()
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        methodChannel = channel
+
+        channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "hasUsagePermission" -> {
                     result.success(checkUsagePermission())
+                }
+                "isDefaultLauncher" -> {
+                    try {
+                        val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                        val resolveInfo = packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
+                        val isDefault = resolveInfo?.activityInfo?.packageName == packageName
+                        result.success(isDefault)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
+                "wasLaunchedFromHome" -> {
+                    val isHome = intent?.hasCategory(Intent.CATEGORY_HOME) == true
+                    result.success(isHome)
                 }
                 "openUsageSettings" -> {
                     try {
@@ -86,6 +104,17 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 "openHomeSettings" -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        val roleManager = getSystemService(Context.ROLE_SERVICE) as? RoleManager
+                        if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                            if (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
+                                startActivity(intent)
+                                result.success(true)
+                                return@setMethodCallHandler
+                            }
+                        }
+                    }
                     try {
                         val homeChooser = Intent(Intent.ACTION_MAIN).apply {
                             addCategory(Intent.CATEGORY_HOME)
@@ -117,6 +146,14 @@ class MainActivity : FlutterActivity() {
                     result.notImplemented()
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.hasCategory(Intent.CATEGORY_HOME)) {
+            methodChannel?.invokeMethod("onHomeButtonPressed", null)
         }
     }
 

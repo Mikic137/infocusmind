@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/tema.dart';
 import '../../core/usage_service.dart';
+import '../launcher/launcher_screen.dart';
 
 class DistractionSettingsPage extends StatefulWidget {
   final bool embedded;
@@ -13,6 +14,7 @@ class DistractionSettingsPage extends StatefulWidget {
 class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
   bool tienePermiso = false;
   bool cargando = true;
+  bool esLauncherDefault = false;
   List<AppInfo> apps = [];
   Set<String> distractoras = {};
   Set<String> utiles = {};
@@ -37,6 +39,7 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
     final permiso = await UsageService.tienePermiso();
     final seleccionadas = await UsageService.obtenerAppsDistractoras();
     final seleccionadasUtiles = await UsageService.obtenerAppsUtiles();
+    final isDefault = await UsageService.esLauncherPredeterminado();
     List<AppInfo> listaApps = [];
 
     if (permiso) {
@@ -46,6 +49,7 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
     if (!mounted) return;
     setState(() {
       tienePermiso = permiso;
+      esLauncherDefault = isDefault;
       distractoras = seleccionadas.toSet();
       utiles = seleccionadasUtiles.toSet();
       apps = listaApps;
@@ -170,38 +174,102 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
 
                 // Tarjeta de Modo Launcher / Pantalla de Inicio de Enfoque
                 TarjetaJuego(
-                  borde: Colores.violeta,
+                  borde: esLauncherDefault ? Colores.menta : Colores.violeta,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.home_rounded,
-                              color: Colores.violeta, size: 24),
+                          Icon(
+                            esLauncherDefault
+                                ? Icons.verified_rounded
+                                : Icons.home_rounded,
+                            color: esLauncherDefault
+                                ? Colores.menta
+                                : Colores.violeta,
+                            size: 24,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'MODO ENFOQUE PURO (LAUNCHER)',
-                              style: hud(9, color: Colores.luna),
+                              esLauncherDefault
+                                  ? 'LAUNCHER ACTIVO EN TU CELULAR'
+                                  : 'MODO ENFOQUE PURO (LAUNCHER)',
+                              style: hud(9,
+                                  color: esLauncherDefault
+                                      ? Colores.menta
+                                      : Colores.luna),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        'Convierte InfocusMind en tu pantalla de inicio mientras estudias. '
-                        'Al presionar el botón Home no verás redes sociales, solo tu progreso y tus herramientas autorizadas.',
-                        style: TextStyle(
+                      Text(
+                        esLauncherDefault
+                            ? 'InfocusMind es tu pantalla de inicio actual. Al salir de cualquier app o presionar el botón Home de tu celular, solo verás tus herramientas útiles autorizadas y no verás redes sociales ni juegos.'
+                            : 'Convierte InfocusMind en tu pantalla de inicio mientras estudias. Al presionar el botón Home de tu celular verás únicamente las aplicaciones que elijas abajo.',
+                        style: const TextStyle(
                             color: Colores.luna, fontSize: 13, height: 1.25),
                       ),
                       const SizedBox(height: 14),
-                      BotonJuego(
-                        texto: 'Activar Pantalla de Inicio',
-                        color: Colores.violeta,
-                        sombra: Colores.violetaSombra,
-                        colorTexto: Colors.white,
-                        icono: Icons.apps_rounded,
-                        onPressed: UsageService.abrirSelectorLauncher,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: BotonJuego(
+                              texto: esLauncherDefault
+                                  ? 'Ver Launcher'
+                                  : 'Activar como Launcher',
+                              color: esLauncherDefault
+                                  ? Colores.menta
+                                  : Colores.violeta,
+                              sombra: esLauncherDefault
+                                  ? Colores.mentaSombra
+                                  : Colores.violetaSombra,
+                              colorTexto: esLauncherDefault
+                                  ? Colores.noche
+                                  : Colors.white,
+                              icono: esLauncherDefault
+                                  ? Icons.visibility_rounded
+                                  : Icons.apps_rounded,
+                              onPressed: () {
+                                if (esLauncherDefault) {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => LauncherScreen(
+                                        onAbrirAppCompleta: () =>
+                                            Navigator.pop(context),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  UsageService.abrirSelectorLauncher();
+                                  Future.delayed(
+                                      const Duration(seconds: 1), cargar);
+                                }
+                              },
+                            ),
+                          ),
+                          if (esLauncherDefault) ...[
+                            const SizedBox(width: 10),
+                            IconButton.filled(
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colores.noche,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6)),
+                                side: const BorderSide(
+                                    color: Colores.borde, width: 1.5),
+                              ),
+                              tooltip: 'Cambiar launcher / Salir',
+                              onPressed: () async {
+                                await UsageService.abrirSelectorLauncher();
+                                Future.delayed(
+                                    const Duration(seconds: 1), cargar);
+                              },
+                              icon: const Icon(Icons.exit_to_app_rounded,
+                                  color: Colores.coral),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),

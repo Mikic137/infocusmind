@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
@@ -343,9 +343,6 @@ Future<Map<String, dynamic>> llamarGemini(
   }
 
   throw Exception(errores.isNotEmpty ? errores : 'No hay proveedor de IA disponible');
-}
-
-  throw Exception('No hay proveedor de IA configurado');
 }
 
 /// Deja el perfil con la forma exacta que esperamos y tamaños acotados.

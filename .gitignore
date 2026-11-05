@@ -1,0 +1,26 @@
+# Variables de entorno y secretos (NUNCA subir a Git)
+.env
+*.env
+*.env.local
+
+# Volumen de datos local de PostgreSQL
+pgdata/
+
+# Archivos temporales de Flutter y Dart
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/build/
+mobile/.packages
+backend/.dart_tool/
+backend/.packages
+
+# Claves de firma de Android
+*.jks
+*.keystore
+key.properties
+
+# Sistema operativo y logs
+*.log
+.DS_Store
+Thumbs.db

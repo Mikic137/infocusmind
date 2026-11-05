@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
@@ -270,13 +270,21 @@ Future<Map<String, dynamic>> _llamarDeepSeek(
   ];
 
   if (mensajes.isEmpty) {
-    listaMensajes.add({'role': 'user', 'content': 'Hola, inicia la conversacion saludando'});
+    listaMensajes.add({'role': 'user', 'content': 'Inicia la conversacion saludando'});
   } else {
+    // DeepSeek exige que despues de system el primer mensaje sea de rol user
+    if (mensajes.first['role'] == 'model') {
+      listaMensajes.add({'role': 'user', 'content': 'Hola'});
+    }
     for (final m in mensajes) {
-      listaMensajes.add({
-        'role': m['role'] == 'model' ? 'assistant' : 'user',
-        'content': m['text'] ?? '',
-      });
+      final isModel = m['role'] == 'model';
+      final role = isModel ? 'assistant' : 'user';
+      final text = m['text'] ?? '';
+      // Formatear el mensaje del asistente en JSON para que DeepSeek mantenga el formato
+      final content = isModel
+          ? jsonEncode({'reply': text, 'done': false, 'profile': null})
+          : text;
+      listaMensajes.add({'role': role, 'content': content});
     }
   }
 
@@ -302,9 +310,40 @@ Future<Map<String, dynamic>> _llamarDeepSeek(
   }
 
   final data = jsonDecode(utf8.decode(r.bodyBytes));
-  final contenido = data['choices'][0]['message']['content'] as String;
-  final texto = contenido.replaceAll(RegExp(r'```json|```'), '').trim();
-  return jsonDecode(texto) as Map<String, dynamic>;
+  final msg = data['choices'][0]['message'];
+  var contenido = (msg['content'] ?? '').toString();
+  if (contenido.trim().isEmpty && msg['reasoning_content'] != null) {
+    contenido = msg['reasoning_content'].toString();
+  }
+
+  var texto = contenido.replaceAll(RegExp(r'```json|```'), '').trim();
+  final inicio = texto.indexOf('{');
+  final fin = texto.lastIndexOf('}');
+  if (inicio != -1 && fin != -1 && fin >= inicio) {
+    texto = texto.substring(inicio, fin + 1);
+  }
+
+  if (texto.isEmpty || !texto.startsWith('{')) {
+    return {
+      'reply': contenido.isNotEmpty ? contenido : 'Â¡Hola! Â¿CÃ³mo te gustarÃ­a organizar tu tiempo?',
+      'done': false,
+      'profile': null,
+      'valida': true,
+      'pasos': [],
+    };
+  }
+
+  try {
+    return jsonDecode(texto) as Map<String, dynamic>;
+  } catch (_) {
+    return {
+      'reply': contenido.isNotEmpty ? contenido : 'Â¡Hola! Continuemos con tu rutina.',
+      'done': false,
+      'profile': null,
+      'valida': true,
+      'pasos': [],
+    };
+  }
 }
 
 Future<Map<String, dynamic>> llamarGemini(

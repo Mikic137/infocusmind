@@ -237,6 +237,15 @@ class UsageService {
     }
   }
 
+  /// Abre directamente la pantalla de ajustes de "Aplicaciones predeterminadas" / "Pantalla de inicio" de Android.
+  static Future<void> abrirAjustesAppsPredeterminadas() async {
+    try {
+      await _canal.invokeMethod('openDefaultAppsSettings');
+    } on PlatformException catch (e) {
+      debugPrint('Error al abrir ajustes de apps predeterminadas: $e');
+    }
+  }
+
   /// Callback para cuando el usuario presiona el botón Home físico o gestual de Android.
   static VoidCallback? onHomePressed;
 

@@ -104,23 +104,12 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 "openHomeSettings" -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        val roleManager = getSystemService(Context.ROLE_SERVICE) as? RoleManager
-                        if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
-                            if (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
-                                startActivity(intent)
-                                result.success(true)
-                                return@setMethodCallHandler
-                            }
-                        }
-                    }
                     try {
                         val homeChooser = Intent(Intent.ACTION_MAIN).apply {
                             addCategory(Intent.CATEGORY_HOME)
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         }
-                        startActivity(Intent.createChooser(homeChooser, "Selecciona tu pantalla de inicio"))
+                        startActivity(Intent.createChooser(homeChooser, "¿Qué aplicación usar como pantalla de inicio?"))
                         result.success(true)
                     } catch (e: Exception) {
                         try {
@@ -139,6 +128,25 @@ class MainActivity : FlutterActivity() {
                             } catch (e3: Exception) {
                                 result.error("ERROR", e3.message, null)
                             }
+                        }
+                    }
+                }
+                "openDefaultAppsSettings" -> {
+                    try {
+                        val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        try {
+                            val fallback = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(fallback)
+                            result.success(true)
+                        } catch (e2: Exception) {
+                            result.error("ERROR", e2.message, null)
                         }
                     }
                 }

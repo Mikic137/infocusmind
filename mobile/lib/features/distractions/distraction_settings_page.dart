@@ -271,6 +271,30 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                           ],
                         ],
                       ),
+                      if (!esLauncherDefault) ...[
+                        const SizedBox(height: 8),
+                        Center(
+                          child: TextButton.icon(
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                            ),
+                            onPressed: () async {
+                              await UsageService.abrirAjustesAppsPredeterminadas();
+                              Future.delayed(
+                                  const Duration(seconds: 1), cargar);
+                            },
+                            icon: const Icon(Icons.settings_rounded,
+                                size: 14, color: Colores.tenue),
+                            label: const Text(
+                              'Abrir ajustes de pantalla de inicio del sistema',
+                              style: TextStyle(
+                                  color: Colores.tenue, fontSize: 11),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

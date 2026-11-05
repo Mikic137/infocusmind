@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
@@ -10,74 +10,126 @@ import 'package:shelf_router/shelf_router.dart';
 
 final env = Platform.environment;
 
-Future<Connection> abrirConexion() {
-  return Connection.open(
-    Endpoint(
-      host: env['DB_HOST'] ?? env['PGHOST'] ?? 'localhost',
-      port: int.tryParse(env['DB_PORT'] ?? env['PGPORT'] ?? '5432') ?? 5432,
-      database: env['POSTGRES_DB'] ?? env['PGDATABASE'] ?? 'infocusmind',
-      username: env['POSTGRES_USER'] ?? env['PGUSER'] ?? 'postgres',
-      password: env['POSTGRES_PASSWORD'] ?? env['PGPASSWORD'] ?? 'postgres',
-    ),
-    settings: ConnectionSettings(
-      sslMode: env['PGSSLMODE'] == 'require' ? SslMode.require : SslMode.disable,
-    ),
-  );
+Future<Connection> abrirConexion() async {
+  String host = 'localhost';
+  int port = 5432;
+  String database = 'railway';
+  String username = 'postgres';
+  String? password;
+
+  final dbUrl = env['DATABASE_URL'] ?? env['DATABASE_PUBLIC_URL'];
+  if (dbUrl != null && dbUrl.trim().isNotEmpty) {
+    try {
+      final uri = Uri.parse(dbUrl.trim());
+      host = uri.host;
+      if (uri.hasPort) port = uri.port;
+      if (uri.pathSegments.isNotEmpty) database = uri.pathSegments.first;
+      if (uri.userInfo.isNotEmpty) {
+        final partes = uri.userInfo.split(':');
+        username = Uri.decodeComponent(partes[0]);
+        if (partes.length > 1) password = Uri.decodeComponent(partes[1]);
+      }
+    } catch (e) {
+      print('Error parseando DATABASE_URL: $e');
+    }
+  } else {
+    host = env['DB_HOST'] ?? env['PGHOST'] ?? 'localhost';
+    port = int.tryParse(env['DB_PORT'] ?? env['PGPORT'] ?? '5432') ?? 5432;
+    database = env['POSTGRES_DB'] ?? env['PGDATABASE'] ?? 'railway';
+    username = env['POSTGRES_USER'] ?? env['PGUSER'] ?? 'postgres';
+    password = env['POSTGRES_PASSWORD'] ?? env['PGPASSWORD'];
+  }
+
+  print('Intentando conectar a DB en: $host:$port/$database (user: $username)...');
+
+  try {
+    return await Connection.open(
+      Endpoint(
+        host: host,
+        port: port,
+        database: database,
+        username: username,
+        password: password,
+      ),
+      settings: const ConnectionSettings(sslMode: SslMode.require),
+    );
+  } catch (e) {
+    print('Aviso: SSL require no disponible ($e), probando con sslMode disable...');
+    return await Connection.open(
+      Endpoint(
+        host: host,
+        port: port,
+        database: database,
+        username: username,
+        password: password,
+      ),
+      settings: const ConnectionSettings(sslMode: SslMode.disable),
+    );
+  }
 }
 
 Future<void> crearTablas() async {
-  final conn = await abrirConexion();
-  await conn.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  ''');
-  await conn.execute('''
-    CREATE TABLE IF NOT EXISTS profiles (
-      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      data TEXT NOT NULL,
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  ''');
-  await conn.execute('''
-    CREATE TABLE IF NOT EXISTS tasks (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      title TEXT NOT NULL,
-      details TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  ''');
-  await conn.execute('''
-    CREATE TABLE IF NOT EXISTS task_steps (
-      id SERIAL PRIMARY KEY,
-      task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-      position INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      est_minutes INTEGER NOT NULL,
-      done BOOLEAN NOT NULL DEFAULT false
-    )
-  ''');
-  await conn.execute('''
-    CREATE TABLE IF NOT EXISTS focus_sessions (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      step_id INTEGER REFERENCES task_steps(id) ON DELETE SET NULL,
-      step_title TEXT NOT NULL,
-      est_minutes INTEGER NOT NULL,
-      started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      ended_at TIMESTAMPTZ,
-      actual_seconds INTEGER,
-      status TEXT NOT NULL DEFAULT 'active',
-      counts_for_learning BOOLEAN NOT NULL DEFAULT false
-    )
-  ''');
-  await conn.close();
-  print('Tablas listas');
+  for (var intento = 1; intento <= 10; intento++) {
+    try {
+      final conn = await abrirConexion();
+      await conn.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      ''');
+      await conn.execute('''
+        CREATE TABLE IF NOT EXISTS profiles (
+          user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          data TEXT NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      ''');
+      await conn.execute('''
+        CREATE TABLE IF NOT EXISTS tasks (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          details TEXT NOT NULL DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'pending',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      ''');
+      await conn.execute('''
+        CREATE TABLE IF NOT EXISTS task_steps (
+          id SERIAL PRIMARY KEY,
+          task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+          position INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          est_minutes INTEGER NOT NULL,
+          done BOOLEAN NOT NULL DEFAULT false
+        )
+      ''');
+      await conn.execute('''
+        CREATE TABLE IF NOT EXISTS focus_sessions (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          step_id INTEGER REFERENCES task_steps(id) ON DELETE SET NULL,
+          step_title TEXT NOT NULL,
+          est_minutes INTEGER NOT NULL,
+          started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          ended_at TIMESTAMPTZ,
+          actual_seconds INTEGER,
+          status TEXT NOT NULL DEFAULT 'active',
+          counts_for_learning BOOLEAN NOT NULL DEFAULT false
+        )
+      ''');
+      await conn.close();
+      print('Tablas de PostgreSQL listas y verificadas.');
+      return;
+    } catch (e) {
+      print('Intento $intento/10 de conectar/crear tablas: $e');
+      if (intento == 10) rethrow;
+      await Future.delayed(const Duration(seconds: 3));
+    }
+  }
 }
 
 Response json(int status, Map<String, dynamic> body) => Response(
@@ -281,7 +333,6 @@ Future<Ajuste> ajusteDe(Connection conn, int userId) async {
 }
 
 void main() async {
-  await crearTablas();
   final router = Router();
 
   router.get('/health', (Request request) async {
@@ -916,7 +967,12 @@ void main() async {
     }
   });
 
-  final port = int.tryParse(env['PORT'] ?? '') ?? 8080;
+    final port = int.tryParse(env['PORT'] ?? '') ?? 8080;
   final server = await io.serve(router.call, '0.0.0.0', port);
   print('InfocusMind API en puerto ${server.port}');
+
+  // Inicializar tablas en segundo plano sin bloquear el arranque del servidor HTTP
+  crearTablas().catchError((e) {
+    print('Error persistente creando tablas: $e');
+  });
 }

@@ -17,7 +17,10 @@ class AuthService {
       return null;
     } on DioException catch (e) {
       if (e.response?.data is Map) {
-        return e.response!.data['error']?.toString() ?? 'Error desconocido';
+        final map = e.response!.data as Map;
+        return map['error']?.toString() ??
+            map['message']?.toString() ??
+            'Error del servidor (${e.response?.statusCode})';
       }
       return 'No se pudo conectar con el servidor';
     }

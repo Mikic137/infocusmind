@@ -8,10 +8,12 @@ RUN dart pub get
 COPY . .
 RUN dart compile exe bin/server.dart -o bin/server
 
-# Imagen de ejecución mínima y ultra ligera (~30MB)
-FROM dart:stable-runtime
+# Imagen de ejecucion minima oficial de Dart con scratch
+FROM scratch
 
+COPY --from=build /runtime/ /
 COPY --from=build /app/bin/server /app/bin/server
 
 EXPOSE 8080
 CMD ["/app/bin/server"]
+

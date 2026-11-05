@@ -257,26 +257,85 @@ Future<Map<String, dynamic>> _llamarGeminiUnaVez(
   return jsonDecode(texto) as Map<String, dynamic>;
 }
 
+Future<Map<String, dynamic>> _llamarDeepSeek(
+    List<Map<String, String>> mensajes, String instruccion) async {
+  final apiKey = env['DEEPSEEK_API_KEY'];
+  if (apiKey == null || apiKey.trim().isEmpty) {
+    throw Exception('No hay DEEPSEEK_API_KEY configurada');
+  }
+
+  final uri = Uri.parse('https://api.deepseek.com/chat/completions');
+  final listaMensajes = [
+    {'role': 'system', 'content': instruccion},
+    for (final m in mensajes)
+      {
+        'role': m['role'] == 'model' ? 'assistant' : 'user',
+        'content': m['text'] ?? '',
+      }
+  ];
+
+  final r = await http
+      .post(
+        uri,
+        headers: {
+          'content-type': 'application/json',
+          'authorization': 'Bearer ${apiKey.trim()}',
+        },
+        body: jsonEncode({
+          'model': env['DEEPSEEK_MODEL'] ?? 'deepseek-chat',
+          'messages': listaMensajes,
+          'response_format': {'type': 'json_object'},
+          'temperature': 0.3,
+        }),
+      )
+      .timeout(const Duration(seconds: 35));
+
+  if (r.statusCode != 200) {
+    print('DeepSeek ${r.statusCode}: ${r.body}');
+    throw Exception('DeepSeek respondiÃ³ ${r.statusCode}: ${r.body}');
+  }
+
+  final data = jsonDecode(utf8.decode(r.bodyBytes));
+  final contenido = data['choices'][0]['message']['content'] as String;
+  final texto = contenido.replaceAll(RegExp(r'```json|```'), '').trim();
+  return jsonDecode(texto) as Map<String, dynamic>;
+}
+
 Future<Map<String, dynamic>> llamarGemini(
     List<Map<String, String>> mensajes, String instruccion) async {
-  final principal = env['GEMINI_MODEL'] ?? 'gemini-3.6-flash';
-  final respaldo = env['GEMINI_FALLBACK_MODEL'] ?? 'gemini-2.5-flash';
-  // Alterna: principal, respaldo, principal
-  final modelos = [principal, respaldo, principal];
-
-  Object? ultimoError;
-  for (var i = 0; i < modelos.length; i++) {
+  // 1. Prioridad: DeepSeek
+  if (env['DEEPSEEK_API_KEY'] != null && env['DEEPSEEK_API_KEY']!.trim().isNotEmpty) {
     try {
-      return await _llamarGeminiUnaVez(mensajes, instruccion, modelos[i]);
+      print('Procesando peticion con DeepSeek (deepseek-chat)...');
+      return await _llamarDeepSeek(mensajes, instruccion);
     } catch (e) {
-      ultimoError = e;
-      print('Intento ${i + 1} de ${modelos.length} (${modelos[i]}) falló: $e');
-      if (i < modelos.length - 1) {
-        await Future.delayed(Duration(seconds: i + 1));
-      }
+      print('DeepSeek fallo ($e). Probando alternativas...');
     }
   }
-  throw ultimoError!;
+
+  // 2. Respaldo: Gemini
+  if (env['GEMINI_API_KEY'] != null && env['GEMINI_API_KEY']!.trim().isNotEmpty) {
+    final principal = env['GEMINI_MODEL'] ?? 'gemini-2.5-flash';
+    final respaldo = env['GEMINI_FALLBACK_MODEL'] ?? 'gemini-2.5-flash';
+    final modelos = [principal, respaldo];
+
+    Object? ultimoError;
+    for (var i = 0; i < modelos.length; i++) {
+      try {
+        print('Procesando peticion con Gemini (${modelos[i]})...');
+        return await _llamarGeminiUnaVez(mensajes, instruccion, modelos[i]);
+      } catch (e) {
+        ultimoError = e;
+        print('Intento ${i + 1} (${modelos[i]}) fallÃ³: $e');
+        if (i < modelos.length - 1) {
+          await Future.delayed(Duration(seconds: i + 1));
+        }
+      }
+    }
+    throw ultimoError!;
+  }
+
+  throw Exception('No hay proveedor de IA configurado');
 }
 
 /// Deja el perfil con la forma exacta que esperamos y tamaños acotados.

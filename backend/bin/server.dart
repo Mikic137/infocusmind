@@ -551,7 +551,7 @@ void main() async {
       return json(200, {'reply': reply, 'done': terminado});
     } catch (e) {
       print('Error en /onboarding/chat: $e');
-      return json(500, {'error': 'Error de IA: '});
+      return json(500, {'error': 'Error de IA: ${e.toString()}'});
     }
   });
 

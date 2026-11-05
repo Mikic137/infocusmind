@@ -460,7 +460,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en /register: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
 
@@ -490,7 +490,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en /login: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
 
@@ -572,7 +572,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en /profile: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
 
@@ -727,7 +727,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en GET /tasks: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
 
@@ -766,7 +766,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en PATCH step: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
 
@@ -788,7 +788,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en DELETE /tasks: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
   router.post('/sessions', (Request request) async {
@@ -838,7 +838,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en POST /sessions: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
 
@@ -915,7 +915,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en finish: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
 
@@ -941,7 +941,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en cancel: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
   router.get('/stats/estimation', (Request request) async {
@@ -961,7 +961,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en /stats/estimation: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
   router.get('/stats/summary', (Request request) async {
@@ -1041,7 +1041,7 @@ void main() async {
       }
     } catch (e) {
       print('Error en /stats/summary: $e');
-      return json(500, {'error': 'Error del servidor'});
+      return json(500, {'error': 'Error en register: $e'});
     }
   });
 

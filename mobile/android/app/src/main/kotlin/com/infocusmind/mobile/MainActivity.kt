@@ -129,25 +129,25 @@ class MainActivity : FlutterActivity() {
                         // ignore
                     }
                     try {
-                        val homeChooser = Intent(Intent.ACTION_MAIN).apply {
-                            addCategory(Intent.CATEGORY_HOME)
+                        val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         }
-                        startActivity(Intent.createChooser(homeChooser, "¿Qué aplicación usar como pantalla de inicio?"))
+                        startActivity(intent)
                         result.success(true)
                     } catch (e: Exception) {
                         try {
-                            val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
+                            val fallback = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
                                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
                             }
-                            startActivity(intent)
+                            startActivity(fallback)
                             result.success(true)
                         } catch (e2: Exception) {
                             try {
-                                val fallback = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
+                                val homeChooser = Intent(Intent.ACTION_MAIN).apply {
+                                    addCategory(Intent.CATEGORY_HOME)
                                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                 }
-                                startActivity(fallback)
+                                startActivity(Intent.createChooser(homeChooser, "¿Qué aplicación usar como pantalla de inicio?"))
                                 result.success(true)
                             } catch (e3: Exception) {
                                 result.error("ERROR", e3.message, null)

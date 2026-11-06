@@ -263,11 +263,19 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                           color: Colores.violeta,
                           sombra: Colores.violetaSombra,
                           icono: Icons.apps_rounded,
-                          onPressed: () {
-                            UsageService.abrirSelectorLauncher();
+                          onPressed: () async {
+                            await UsageService.abrirSelectorLauncher();
                             Future.delayed(
                                 const Duration(seconds: 1), cargar);
                           },
+                        ),
+                        const SizedBox(height: 6),
+                        const Center(
+                          child: Text(
+                            'Al tocarlo, elige InfocusMind en los ajustes para fijarlo.',
+                            style: TextStyle(color: Colores.tenue, fontSize: 11),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ],
                       const SizedBox(height: 8),

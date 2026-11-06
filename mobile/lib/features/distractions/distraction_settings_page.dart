@@ -243,7 +243,14 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                                 icono: Icons.restore_rounded,
                                 onPressed: () async {
                                   await UsageService.desactivarLauncher();
-                                  aviso('Modo Launcher desactivado. Pantalla normal restaurada.');
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Modo Launcher desactivado. Pantalla normal restaurada.'),
+                                      ),
+                                    );
+                                  }
                                   cargar();
                                 },
                               ),

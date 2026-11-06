@@ -22,7 +22,12 @@ class AuthService {
             map['message']?.toString() ??
             'Error del servidor (${e.response?.statusCode})';
       }
-      return 'No se pudo conectar con el servidor';
+      if (e.type == DioExceptionType.connectionTimeout) {
+        return 'Tiempo de conexión agotado (servidor ocupado o despertando). Reintenta en unos segundos.';
+      }
+      return 'No se pudo conectar con el servidor (${e.message ?? e.type.name})';
+    } catch (e) {
+      return 'Error de conexión: $e';
     }
   }
 

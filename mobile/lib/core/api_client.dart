@@ -3,11 +3,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const _almacen = FlutterSecureStorage();
 
-// 10.0.2.2 es la dirección con la que el emulador ve tu PC
 final dio = Dio(BaseOptions(
   baseUrl: 'https://infocusmind-production.up.railway.app',
-  connectTimeout: const Duration(seconds: 10),
+  connectTimeout: const Duration(seconds: 30),
   receiveTimeout: const Duration(seconds: 90),
+  sendTimeout: const Duration(seconds: 30),
 ))
   ..interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) async {

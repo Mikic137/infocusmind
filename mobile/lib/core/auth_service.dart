@@ -3,9 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_client.dart';
 
-const _storage = FlutterSecureStorage(
-  aOptions: AndroidOptions(encryptedSharedPreferences: true),
-);
+const _storage = FlutterSecureStorage();
 
 class AuthService {
   /// Devuelve null si todo salió bien, o el mensaje de error.

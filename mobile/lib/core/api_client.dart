@@ -1,9 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-const _almacen = FlutterSecureStorage(
-  aOptions: AndroidOptions(encryptedSharedPreferences: true),
-);
+const _almacen = FlutterSecureStorage();
 
 final dio = Dio(BaseOptions(
   baseUrl: 'https://infocusmind-production.up.railway.app',

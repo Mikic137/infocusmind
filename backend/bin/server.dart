@@ -7,6 +7,7 @@ import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart';
+import 'metrics_handler.dart';
 
 final env = Platform.environment;
 
@@ -457,6 +458,8 @@ Future<Ajuste> ajusteDe(Connection conn, int userId) async {
 
 void main() async {
   final router = Router();
+
+  router.get('/admin/metrics', (Request req) => handleMetrics(req, abrirConexion));
 
   router.get('/health', (Request request) async {
     try {

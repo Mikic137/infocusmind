@@ -33,14 +33,21 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+        </activity>
 
-            <!-- Habilita la app como pantalla de inicio / Launcher de estudio -->
+        <!-- Alias específico para la función de Pantalla de Inicio / Launcher.
+             Permite activar/desactivar el modo Launcher sin afectar el acceso normal a la app -->
+        <activity-alias
+            android:name=".LauncherAlias"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </activity>
+        </activity-alias>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

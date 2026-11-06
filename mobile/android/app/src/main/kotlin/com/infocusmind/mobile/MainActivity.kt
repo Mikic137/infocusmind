@@ -9,6 +9,7 @@ import android.app.PendingIntent
 import android.app.role.RoleManager
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -42,6 +43,12 @@ class MainActivity : FlutterActivity() {
                 }
                 "isDefaultLauncher" -> {
                     try {
+                        val alias = ComponentName(this, "$packageName.LauncherAlias")
+                        val state = packageManager.getComponentEnabledSetting(alias)
+                        if (state == PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
+                            result.success(false)
+                            return@setMethodCallHandler
+                        }
                         val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
                         val resolveInfo = packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
                         val isDefault = resolveInfo?.activityInfo?.packageName == packageName
@@ -51,8 +58,15 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 "wasLaunchedFromHome" -> {
-                    val isHome = intent?.hasCategory(Intent.CATEGORY_HOME) == true
-                    result.success(isHome)
+                    try {
+                        val alias = ComponentName(this, "$packageName.LauncherAlias")
+                        val state = packageManager.getComponentEnabledSetting(alias)
+                        val isEnabled = state != PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                        val isHome = intent?.hasCategory(Intent.CATEGORY_HOME) == true && isEnabled
+                        result.success(isHome)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
                 }
                 "openUsageSettings" -> {
                     try {
@@ -105,6 +119,16 @@ class MainActivity : FlutterActivity() {
                 }
                 "openHomeSettings" -> {
                     try {
+                        val alias = ComponentName(this, "$packageName.LauncherAlias")
+                        packageManager.setComponentEnabledSetting(
+                            alias,
+                            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                            PackageManager.DONT_KILL_APP
+                        )
+                    } catch (e: Exception) {
+                        // ignore
+                    }
+                    try {
                         val homeChooser = Intent(Intent.ACTION_MAIN).apply {
                             addCategory(Intent.CATEGORY_HOME)
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -128,6 +152,35 @@ class MainActivity : FlutterActivity() {
                             } catch (e3: Exception) {
                                 result.error("ERROR", e3.message, null)
                             }
+                        }
+                    }
+                }
+                "disableLauncher" -> {
+                    try {
+                        val alias = ComponentName(this, "$packageName.LauncherAlias")
+                        packageManager.setComponentEnabledSetting(
+                            alias,
+                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                            PackageManager.DONT_KILL_APP
+                        )
+                        packageManager.clearPackagePreferredActivities(packageName)
+
+                        // Volver a la pantalla de inicio del sistema
+                        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                            addCategory(Intent.CATEGORY_HOME)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(homeIntent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        try {
+                            val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (e2: Exception) {
+                            result.error("ERROR", e2.message, null)
                         }
                     }
                 }
@@ -161,7 +214,11 @@ class MainActivity : FlutterActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.hasCategory(Intent.CATEGORY_HOME)) {
-            methodChannel?.invokeMethod("onHomeButtonPressed", null)
+            val alias = ComponentName(this, "$packageName.LauncherAlias")
+            val state = packageManager.getComponentEnabledSetting(alias)
+            if (state != PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
+                methodChannel?.invokeMethod("onHomeButtonPressed", null)
+            }
         }
     }
 

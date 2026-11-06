@@ -212,27 +212,17 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                             color: Colores.luna, fontSize: 13, height: 1.25),
                       ),
                       const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: BotonJuego(
-                              texto: esLauncherDefault
-                                  ? 'Ver Launcher'
-                                  : 'Activar como Launcher',
-                              color: esLauncherDefault
-                                  ? Colores.menta
-                                  : Colores.violeta,
-                              sombra: esLauncherDefault
-                                  ? Colores.mentaSombra
-                                  : Colores.violetaSombra,
-                              colorTexto: esLauncherDefault
-                                  ? Colores.noche
-                                  : Colors.white,
-                              icono: esLauncherDefault
-                                  ? Icons.visibility_rounded
-                                  : Icons.apps_rounded,
-                              onPressed: () {
-                                if (esLauncherDefault) {
+                      if (esLauncherDefault) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: BotonJuego(
+                                texto: 'Ver Launcher',
+                                color: Colores.menta,
+                                sombra: Colores.mentaSombra,
+                                colorTexto: Colores.noche,
+                                icono: Icons.visibility_rounded,
+                                onPressed: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder: (_) => LauncherScreen(
@@ -241,60 +231,60 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                                       ),
                                     ),
                                   );
-                                } else {
-                                  UsageService.abrirSelectorLauncher();
-                                  Future.delayed(
-                                      const Duration(seconds: 1), cargar);
-                                }
-                              },
-                            ),
-                          ),
-                          if (esLauncherDefault) ...[
-                            const SizedBox(width: 10),
-                            IconButton.filled(
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colores.noche,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6)),
-                                side: const BorderSide(
-                                    color: Colores.borde, width: 1.5),
+                                },
                               ),
-                              tooltip: 'Cambiar launcher / Salir',
-                              onPressed: () async {
-                                await UsageService.abrirSelectorLauncher();
-                                Future.delayed(
-                                    const Duration(seconds: 1), cargar);
-                              },
-                              icon: const Icon(Icons.exit_to_app_rounded,
-                                  color: Colores.coral),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: BotonJuego(
+                                texto: 'Desactivar',
+                                color: Colores.coral,
+                                sombra: Colores.coralSombra,
+                                icono: Icons.restore_rounded,
+                                onPressed: () async {
+                                  await UsageService.desactivarLauncher();
+                                  aviso('Modo Launcher desactivado. Pantalla normal restaurada.');
+                                  cargar();
+                                },
+                              ),
                             ),
                           ],
-                        ],
-                      ),
-                      if (!esLauncherDefault) ...[
-                        const SizedBox(height: 8),
-                        Center(
-                          child: TextButton.icon(
-                            style: TextButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                            ),
-                            onPressed: () async {
-                              await UsageService.abrirAjustesAppsPredeterminadas();
-                              Future.delayed(
-                                  const Duration(seconds: 1), cargar);
-                            },
-                            icon: const Icon(Icons.settings_rounded,
-                                size: 14, color: Colores.tenue),
-                            label: const Text(
-                              'Abrir ajustes de pantalla de inicio del sistema',
-                              style: TextStyle(
-                                  color: Colores.tenue, fontSize: 11),
-                            ),
-                          ),
+                        ),
+                      ] else ...[
+                        BotonJuego(
+                          texto: 'Activar como Launcher',
+                          color: Colores.violeta,
+                          sombra: Colores.violetaSombra,
+                          icono: Icons.apps_rounded,
+                          onPressed: () {
+                            UsageService.abrirSelectorLauncher();
+                            Future.delayed(
+                                const Duration(seconds: 1), cargar);
+                          },
                         ),
                       ],
+                      const SizedBox(height: 8),
+                      Center(
+                        child: TextButton.icon(
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                          ),
+                          onPressed: () async {
+                            await UsageService.abrirAjustesAppsPredeterminadas();
+                            Future.delayed(
+                                const Duration(seconds: 1), cargar);
+                          },
+                          icon: const Icon(Icons.settings_rounded,
+                              size: 14, color: Colores.tenue),
+                          label: const Text(
+                            'Abrir ajustes de pantalla de inicio del sistema',
+                            style: TextStyle(
+                                color: Colores.tenue, fontSize: 11),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

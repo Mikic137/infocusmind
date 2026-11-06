@@ -94,6 +94,81 @@ class _LauncherScreenState extends State<LauncherScreen> {
     cargarApps();
   }
 
+  void _mostrarMenuSalir() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colores.nocheClara,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        side: BorderSide(color: Colores.borde, width: 1.5),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.exit_to_app_rounded,
+                        color: Colores.coral, size: 24),
+                    const SizedBox(width: 10),
+                    Text('OPCIONES DEL LAUNCHER',
+                        style: hud(11, color: Colores.coral)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Elige si deseas desactivar el modo Launcher para volver a tu pantalla de inicio habitual, o abrir la app completa:',
+                  style: TextStyle(color: Colores.tenue, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                BotonJuego(
+                  texto: 'Desactivar y volver a mi pantalla normal',
+                  color: Colores.coral,
+                  sombra: Colores.coralSombra,
+                  icono: Icons.restore_rounded,
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await UsageService.desactivarLauncher();
+                    widget.onAbrirAppCompleta?.call();
+                  },
+                ),
+                const SizedBox(height: 10),
+                BotonJuego(
+                  texto: 'Cambiar launcher en Ajustes del teléfono',
+                  color: Colores.noche,
+                  sombra: Colores.sombraCarta,
+                  colorTexto: Colores.luna,
+                  icono: Icons.settings_rounded,
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await UsageService.abrirAjustesAppsPredeterminadas();
+                  },
+                ),
+                if (widget.onAbrirAppCompleta != null) ...[
+                  const SizedBox(height: 10),
+                  BotonJuego(
+                    texto: 'Ir a InfocusMind completo (Misiones/Logros)',
+                    color: Colores.violeta,
+                    sombra: Colores.violetaSombra,
+                    icono: Icons.dashboard_rounded,
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      widget.onAbrirAppCompleta!();
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final listaFiltrada = appsPermitidas.where((a) {
@@ -383,7 +458,7 @@ class _LauncherScreenState extends State<LauncherScreen> {
                         side: const BorderSide(color: Colores.borde, width: 1.2),
                       ),
                       tooltip: 'Cambiar launcher / Salir',
-                      onPressed: UsageService.abrirSelectorLauncher,
+                      onPressed: _mostrarMenuSalir,
                       icon: const Icon(Icons.exit_to_app_rounded,
                           color: Colores.coral, size: 20),
                     ),

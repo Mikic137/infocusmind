@@ -237,6 +237,17 @@ class UsageService {
     }
   }
 
+  /// Desactiva el modo Launcher de InfocusMind y restaura la pantalla de inicio habitual del celular.
+  static Future<bool> desactivarLauncher() async {
+    try {
+      final res = await _canal.invokeMethod<bool>('disableLauncher');
+      return res ?? false;
+    } on PlatformException catch (e) {
+      debugPrint('Error al desactivar launcher: $e');
+      return false;
+    }
+  }
+
   /// Abre directamente la pantalla de ajustes de "Aplicaciones predeterminadas" / "Pantalla de inicio" de Android.
   static Future<void> abrirAjustesAppsPredeterminadas() async {
     try {

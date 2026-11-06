@@ -1,8 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_client.dart';
 
-const _storage = FlutterSecureStorage();
+const _storage = FlutterSecureStorage(
+  aOptions: AndroidOptions(encryptedSharedPreferences: true),
+);
 
 class AuthService {
   /// Devuelve null si todo salió bien, o el mensaje de error.
@@ -13,7 +16,16 @@ class AuthService {
         'email': email,
         'password': password,
       });
-      await _storage.write(key: 'token', value: r.data['token']);
+      final token = r.data['token']?.toString();
+      if (token != null) {
+        try {
+          await _storage
+              .write(key: 'token', value: token)
+              .timeout(const Duration(seconds: 3));
+        } catch (e) {
+          debugPrint('Error guardando token: $e');
+        }
+      }
       return null;
     } on DioException catch (e) {
       if (e.response?.data is Map) {
@@ -23,16 +35,45 @@ class AuthService {
             'Error del servidor (${e.response?.statusCode})';
       }
       if (e.type == DioExceptionType.connectionTimeout) {
-        return 'Tiempo de conexión agotado (servidor ocupado o despertando). Reintenta en unos segundos.';
+        return 'Tiempo de conexión agotado. Revisa tu conexión a internet o datos móviles.';
       }
-      return 'No se pudo conectar con el servidor (${e.message ?? e.type.name})';
+      return 'No se pudo conectar con el servidor: ${e.message ?? e.type.name}';
     } catch (e) {
-      return 'Error de conexión: $e';
+      return 'Error inesperado: $e';
     }
   }
 
-  static Future<bool> haySesion() async =>
-      (await _storage.read(key: 'token')) != null;
+  /// Comprueba la salud del servidor y la conectividad
+  static Future<String> diagnosticarConexion() async {
+    try {
+      final r = await dio.get('/health');
+      if (r.statusCode == 200) {
+        return 'Servidor conectado correctamente (200 OK)';
+      }
+      return 'Respuesta del servidor: ${r.statusCode}';
+    } on DioException catch (e) {
+      return 'Fallo de conexión: ${e.message ?? e.type.name}';
+    } catch (e) {
+      return 'Error: $e';
+    }
+  }
 
-  static Future<void> cerrarSesion() => _storage.delete(key: 'token');
+  static Future<bool> haySesion() async {
+    try {
+      final t = await _storage
+          .read(key: 'token')
+          .timeout(const Duration(seconds: 2));
+      return t != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> cerrarSesion() async {
+    try {
+      await _storage
+          .delete(key: 'token')
+          .timeout(const Duration(seconds: 2));
+    } catch (_) {}
+  }
 }

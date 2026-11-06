@@ -116,6 +116,27 @@ class _AuthPageState extends State<AuthPage> {
                         ? 'Ya tengo cuenta'
                         : 'No tengo cuenta, quiero registrarme'),
                   ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () async {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Comprobando conexión...')),
+                      );
+                      final diag = await AuthService.diagnosticarConexion();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(diag),
+                            duration: const Duration(seconds: 4),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.wifi_find_rounded,
+                        size: 14, color: Colores.tenue),
+                    label: const Text('Comprobar conexión con servidor',
+                        style: TextStyle(color: Colores.tenue, fontSize: 12)),
+                  ),
                 ],
               ),
             ),

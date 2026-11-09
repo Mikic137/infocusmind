@@ -175,6 +175,25 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> editarTarea(Tarea tarea) async {
+    final datos = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => _DialogoNuevaMisionManual(tareaAEditar: tarea),
+    );
+    if (datos == null) return;
+
+    setState(() => cargando = true);
+    try {
+      await dio.put('/tasks/${tarea.id}', data: datos);
+      await cargar();
+      if (mounted) aviso('¡Misión actualizada exitosamente!');
+    } on DioException catch (e) {
+      if (mounted) aviso(mensajeError(e));
+    } finally {
+      if (mounted) setState(() => cargando = false);
+    }
+  }
+
   Widget fila(Tarea t, Paso p) {
     final esActual = !p.hecho && identical(p, t.siguiente);
 
@@ -383,6 +402,12 @@ class _HomePageState extends State<HomePage> {
                       height: 1.15,
                     ),
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined,
+                      color: Colores.cian, size: 20),
+                  tooltip: 'Editar misión',
+                  onPressed: () => editarTarea(t),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline_rounded,
@@ -644,7 +669,8 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _DialogoNuevaMisionManual extends StatefulWidget {
-  const _DialogoNuevaMisionManual();
+  final Tarea? tareaAEditar;
+  const _DialogoNuevaMisionManual({this.tareaAEditar});
 
   @override
   State<_DialogoNuevaMisionManual> createState() => _DialogoNuevaMisionManualState();
@@ -663,6 +689,39 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
   final List<int> pasosMinutos = [];
 
   final duracionesRapidas = [15, 25, 30, 45, 60];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.tareaAEditar != null) {
+      final t = widget.tareaAEditar!;
+      tituloCtrl.text = t.titulo;
+      minutosSeleccionados = t.minutosTotales > 0 ? t.minutosTotales : 25;
+      if (!duracionesRapidas.contains(minutosSeleccionados)) {
+        duracionPersonalizada = true;
+        minutosPersonalizadosCtrl.text = minutosSeleccionados.toString();
+      }
+      if (t.fechaProgramada != null && t.fechaProgramada!.isNotEmpty) {
+        try {
+          final partes = t.fechaProgramada!.split('-');
+          if (partes.length == 3) {
+            fechaSeleccionada = DateTime(
+              int.parse(partes[0]),
+              int.parse(partes[1]),
+              int.parse(partes[2]),
+            );
+          }
+        } catch (_) {}
+      }
+      if (t.pasos.isNotEmpty) {
+        expandirPasos = true;
+        for (final p in t.pasos) {
+          pasosTitulos.add(TextEditingController(text: p.titulo));
+          pasosMinutos.add(p.minutos);
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -746,7 +805,11 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
     for (var i = 0; i < pasosTitulos.length; i++) {
       final st = pasosTitulos[i].text.trim();
       if (st.isNotEmpty) {
-        pasos.add({'title': st, 'minutes': pasosMinutos[i]});
+        bool done = false;
+        if (widget.tareaAEditar != null && i < widget.tareaAEditar!.pasos.length) {
+          done = widget.tareaAEditar!.pasos[i].hecho;
+        }
+        pasos.add({'title': st, 'minutes': pasosMinutos[i], 'done': done});
       }
     }
 
@@ -780,7 +843,12 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
             child: const Icon(Icons.edit_calendar_rounded, color: Colores.sol, size: 22),
           ),
           const SizedBox(width: 10),
-          Expanded(child: Text('NUEVA MISIÓN', style: hud(12, color: Colores.sol))),
+          Expanded(
+            child: Text(
+              widget.tareaAEditar != null ? 'EDITAR MISIÓN' : 'NUEVA MISIÓN',
+              style: hud(12, color: Colores.sol),
+            ),
+          ),
         ],
       ),
       content: SizedBox(
@@ -1007,7 +1075,10 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           ),
           onPressed: guardar,
-          child: const Text('Crear Misión', style: TextStyle(fontWeight: FontWeight.w700)),
+          child: Text(
+            widget.tareaAEditar != null ? 'Guardar Cambios' : 'Crear Misión',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );

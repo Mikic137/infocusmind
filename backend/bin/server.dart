@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
@@ -905,6 +905,93 @@ void main() async {
     } catch (e) {
       print('Error en PATCH step: $e');
       return json(500, {'error': 'Error en register: $e'});
+    }
+  });
+
+  router.put('/tasks/<taskId>', (Request request, String taskId) async {
+    final userId = usuarioDe(request);
+    if (userId == null) return json(401, {'error': 'Sesi�n no v�lida'});
+    final tid = int.tryParse(taskId);
+    if (tid == null) return json(400, {'error': 'Id no v�lido'});
+
+    try {
+      final data = jsonDecode(await request.readAsString());
+      var titulo = (data['title'] ?? '').toString().trim();
+      var detalles = (data['details'] ?? '').toString().trim();
+      var scheduledDate = (data['scheduled_date'] ?? '').toString().trim();
+      final sdParam = scheduledDate.isEmpty ? null : scheduledDate;
+
+      if (titulo.isEmpty) {
+        return json(400, {'error': 'El t�tulo de la misi�n no puede estar vac�o'});
+      }
+      if (titulo.length > 200) titulo = titulo.substring(0, 200);
+      if (detalles.length > 500) detalles = detalles.substring(0, 500);
+
+      final crudos = (data['steps'] as List?) ?? [];
+      final pasos = <Map<String, dynamic>>[];
+      if (crudos.isNotEmpty) {
+        for (final p in crudos.take(15)) {
+          final t = (p['title'] ?? '').toString().trim();
+          if (t.isEmpty) continue;
+          final m = (p['minutes'] is num ? (p['minutes'] as num).round() : 20)
+              .clamp(1, 240)
+              .toInt();
+          final done = p['done'] == true;
+          pasos.add({
+            'title': t.length > 150 ? t.substring(0, 150) : t,
+            'minutes': m,
+            'done': done,
+          });
+        }
+      }
+
+      final conn = await abrirConexion();
+      try {
+        final check = await conn.execute(
+          Sql.named('SELECT id FROM tasks WHERE id = @tid AND user_id = @u'),
+          parameters: {'tid': tid, 'u': userId},
+        );
+        if (check.isEmpty) {
+          return json(404, {'error': 'Misi�n no encontrada'});
+        }
+
+        await conn.runTx((tx) async {
+          await tx.execute(
+            Sql.named(
+              'UPDATE tasks SET title = @t, details = @d, scheduled_date = @sd WHERE id = @tid AND user_id = @u',
+            ),
+            parameters: {'t': titulo, 'd': detalles, 'sd': sdParam, 'tid': tid, 'u': userId},
+          );
+
+          if (pasos.isNotEmpty) {
+            await tx.execute(
+              Sql.named('DELETE FROM task_steps WHERE task_id = @tid'),
+              parameters: {'tid': tid},
+            );
+            for (var i = 0; i < pasos.length; i++) {
+              await tx.execute(
+                Sql.named(
+                  'INSERT INTO task_steps (task_id, position, title, est_minutes, done) '
+                  'VALUES (@tid, @pos, @t, @m, @done)',
+                ),
+                parameters: {
+                  'tid': tid,
+                  'pos': i,
+                  't': pasos[i]['title'],
+                  'm': pasos[i]['minutes'],
+                  'done': pasos[i]['done'],
+                },
+              );
+            }
+          }
+        });
+        return json(200, {'ok': true});
+      } finally {
+        await conn.close();
+      }
+    } catch (e) {
+      print('Error en PUT /tasks/$taskId: $e');
+      return json(500, {'error': 'No se pudo actualizar la misi�n'});
     }
   });
 

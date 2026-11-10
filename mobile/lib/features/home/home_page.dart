@@ -863,10 +863,22 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
                 controller: tituloCtrl,
                 maxLength: 200,
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '¿Qué tienes que hacer?',
                   hintText: 'Ej: Leer capítulo 3 de Historia',
                   counterText: '',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.mic_rounded, color: Colores.cian),
+                    tooltip: 'Dictar por voz (Interfaz Invisible)',
+                    onPressed: () async {
+                      final texto = await UsageService.escucharVoz(
+                        prompt: '¿Qué misión deseas realizar?',
+                      );
+                      if (texto != null && texto.trim().isNotEmpty) {
+                        tituloCtrl.text = texto.trim();
+                      }
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 14),

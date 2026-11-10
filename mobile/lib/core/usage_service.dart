@@ -257,6 +257,17 @@ class UsageService {
     }
   }
 
+  /// Inicia el reconocimiento de voz nativo (Interfaz Invisible) para dictar tareas o mensajes.
+  static Future<String?> escucharVoz({String prompt = '¿Qué misión deseas crear?'}) async {
+    try {
+      final texto = await _canal.invokeMethod<String>('startSpeechToText', {'prompt': prompt});
+      return texto;
+    } on PlatformException catch (e) {
+      debugPrint('Error en reconocimiento de voz: $e');
+      return null;
+    }
+  }
+
   /// Callback para cuando el usuario presiona el botón Home físico o gestual de Android.
   static VoidCallback? onHomePressed;
 

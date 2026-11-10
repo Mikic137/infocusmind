@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/modelos.dart';
 import '../../core/tema.dart';
+import '../../core/usage_service.dart';
 
 class AssistantView extends StatefulWidget {
   final VoidCallback? onMisionCreada;
@@ -272,14 +273,49 @@ class _AssistantViewState extends State<AssistantView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('¿QUÉ QUIERES LOGRAR?', style: hud(9, color: Colores.cian)),
+                Row(
+                  children: [
+                    Text('¿QUÉ QUIERES LOGRAR?', style: hud(9, color: Colores.cian)),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colores.cian.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colores.cian.withValues(alpha: 0.5), width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.mic_rounded, color: Colores.cian, size: 12),
+                          const SizedBox(width: 4),
+                          Text('INTERFAZ INVISIBLE', style: hud(6, color: Colores.cian)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: tituloCtrl,
                   maxLength: 200,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Ej: Estudiar para el examen final de Cálculo',
                     counterText: '',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.mic_rounded, color: Colores.cian),
+                      tooltip: 'Dictar por voz (Interfaz Invisible)',
+                      onPressed: () async {
+                        final texto = await UsageService.escucharVoz(
+                          prompt: 'Di qué misión o meta quieres lograr...',
+                        );
+                        if (texto != null && texto.trim().isNotEmpty) {
+                          setState(() {
+                            tituloCtrl.text = texto.trim();
+                          });
+                        }
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -289,9 +325,27 @@ class _AssistantViewState extends State<AssistantView> {
                   controller: detallesCtrl,
                   maxLines: 2,
                   maxLength: 500,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Ej: Capítulos 4 y 5, teoremas y 10 ejercicios prácticos',
                     counterText: '',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.mic_rounded, color: Colores.tenue),
+                      tooltip: 'Dictar detalles por voz',
+                      onPressed: () async {
+                        final texto = await UsageService.escucharVoz(
+                          prompt: 'Di los detalles adicionales de la misión...',
+                        );
+                        if (texto != null && texto.trim().isNotEmpty) {
+                          setState(() {
+                            if (detallesCtrl.text.isEmpty) {
+                              detallesCtrl.text = texto.trim();
+                            } else {
+                              detallesCtrl.text = '${detallesCtrl.text} ${texto.trim()}';
+                            }
+                          });
+                        }
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -525,9 +579,23 @@ class _AssistantViewState extends State<AssistantView> {
                     controller: chatCtrl,
                     maxLength: 500,
                     onSubmitted: (_) => enviarMensajeChat(),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Cuéntame de tu ritmo de estudio...',
                       counterText: '',
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.mic_rounded, color: Colores.cian),
+                        tooltip: 'Hablar por voz (Interfaz Invisible)',
+                        onPressed: () async {
+                          final texto = await UsageService.escucharVoz(
+                            prompt: 'Habla tu respuesta para el asistente...',
+                          );
+                          if (texto != null && texto.trim().isNotEmpty) {
+                            setState(() {
+                              chatCtrl.text = texto.trim();
+                            });
+                          }
+                        },
+                      ),
                     ),
                   ),
                 ),

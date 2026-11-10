@@ -16,6 +16,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
+import android.speech.RecognizerIntent
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
@@ -27,6 +28,8 @@ class MainActivity : FlutterActivity() {
     private val NOTIF_CHANNEL_ID = "infocusmind_focus_session"
     private val NOTIF_ID = 1001
     private var methodChannel: MethodChannel? = null
+    private var speechResult: MethodChannel.Result? = null
+    private val SPEECH_REQUEST_CODE = 2001
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -203,10 +206,41 @@ class MainActivity : FlutterActivity() {
                         }
                     }
                 }
+                "startSpeechToText" -> {
+                    try {
+                        val prompt = call.argument<String>("prompt") ?: "Habla ahora..."
+                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-ES")
+                            putExtra(RecognizerIntent.EXTRA_PROMPT, prompt)
+                        }
+                        speechResult = result
+                        startActivityForResult(intent, SPEECH_REQUEST_CODE)
+                    } catch (e: Exception) {
+                        result.error("UNAVAILABLE", "Reconocimiento de voz no disponible: ${e.message}", null)
+                    }
+                }
                 else -> {
                     result.notImplemented()
                 }
             }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == SPEECH_REQUEST_CODE) {
+            if (resultCode == RESULT_OK && data != null) {
+                val matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                if (!matches.isNullOrEmpty()) {
+                    speechResult?.success(matches[0])
+                } else {
+                    speechResult?.success(null)
+                }
+            } else {
+                speechResult?.success(null)
+            }
+            speechResult = null
         }
     }
 

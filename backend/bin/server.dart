@@ -483,7 +483,7 @@ void main() async {
         },
       );
     }
-    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.0.0/InfocusMind.apk'));
+    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.0/InfocusMind.apk'));
   });
 
   router.get('/admin/metrics', (Request req) => handleMetrics(req, abrirConexion));

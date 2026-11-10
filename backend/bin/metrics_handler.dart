@@ -76,15 +76,27 @@ Future<Response> handleMetrics(
       final totalMinutes = (totalSeconds / 60).round();
       final totalHours = (totalMinutes / 60.0).toStringAsFixed(1);
 
-      final rRecentUsers = await conn.execute(
-          'SELECT id, email, created_at FROM users ORDER BY created_at DESC LIMIT 15');
+      final rRecentUsers = await conn.execute('''
+        SELECT 
+          u.id, 
+          u.email, 
+          u.created_at,
+          (SELECT COUNT(*) FROM tasks t WHERE t.user_id = u.id) as tareas,
+          (SELECT COUNT(*) FROM focus_sessions f WHERE f.user_id = u.id) as sesiones
+        FROM users u 
+        ORDER BY u.created_at DESC 
+        LIMIT 250
+      ''');
       final recentUsers = rRecentUsers.map((row) {
         final email = row[1] as String;
-        final date = (row[2] as DateTime).toLocal();
+        final rawDt = row[2] as DateTime;
+        final ecuadorDt = rawDt.toUtc().subtract(const Duration(hours: 5));
         return {
           'id': row[0],
           'email': email,
-          'created_at': date.toString().substring(0, 19),
+          'created_at': ecuadorDt.toString().substring(0, 19),
+          'tasks': (row[3] as num).toInt(),
+          'sessions': (row[4] as num).toInt(),
         };
       }).toList();
 
@@ -393,25 +405,34 @@ Future<Response> handleMetrics(
 
     <div class="tables-grid">
       <div class="table-card">
-        <h3>Últimos Usuarios Registrados</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Correo</th>
-              <th>Fecha de registro</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${recentUsers.isEmpty ? '<tr><td colspan="3" style="text-align:center; color:var(--muted)">Sin registros aún</td></tr>' : recentUsers.map((u) => '''
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin-bottom:0;">Usuarios Registrados ($totalUsers en total)</h3>
+          <span style="font-size:11px; color:var(--muted)">Hora Ecuador (UTC-5)</span>
+        </div>
+        <div style="max-height: 480px; overflow-y: auto;">
+          <table>
+            <thead>
               <tr>
-                <td><span class="badge">#${u['id']}</span></td>
-                <td><strong>${u['email']}</strong></td>
-                <td style="color:var(--muted)">${u['created_at']}</td>
+                <th>ID</th>
+                <th>Correo</th>
+                <th>Fecha (Ecuador)</th>
+                <th>Misiones</th>
+                <th>Sesiones</th>
               </tr>
-            ''').join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${recentUsers.isEmpty ? '<tr><td colspan="5" style="text-align:center; color:var(--muted)">Sin registros aún</td></tr>' : recentUsers.map((u) => '''
+                <tr>
+                  <td><span class="badge">#${u['id']}</span></td>
+                  <td><strong>${u['email']}</strong></td>
+                  <td style="color:var(--muted); font-size:12px;">${u['created_at']}</td>
+                  <td><span class="badge" style="background:rgba(0,210,211,0.15); color:var(--cian);">${u['tasks']}</span></td>
+                  <td><span class="badge" style="background:rgba(46,204,113,0.15); color:var(--menta);">${u['sessions']}</span></td>
+                </tr>
+              ''').join('')}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="table-card">

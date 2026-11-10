@@ -6,10 +6,13 @@ import 'features/splash/splash_page.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   UsageService.inicializarListeners();
-  runApp(MaterialApp(
-    title: 'InfocusMind',
-    debugShowCheckedModeBanner: false,
-    theme: temaJuego(),
-    home: const SplashPage(),
+  runApp(ListenableBuilder(
+    listenable: GestorTema.instancia,
+    builder: (context, _) => MaterialApp(
+      title: 'InfocusMind',
+      debugShowCheckedModeBanner: false,
+      theme: GestorTema.instancia.temaActual(),
+      home: const SplashPage(),
+    ),
   ));
 }

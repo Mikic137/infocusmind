@@ -18,8 +18,10 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
   List<AppInfo> apps = [];
   Set<String> distractoras = {};
   Set<String> utiles = {};
-  int modoLista = 0; // 0 = Apps Útiles para Launcher, 1 = Apps Distractoras
+  List<String> dominios = [];
+  int modoLista = 0; // 0 = Apps Útiles para Launcher, 1 = Apps Distractoras, 2 = Dominios/Webs
   final busquedaCtrl = TextEditingController();
+  final nuevoDominioCtrl = TextEditingController();
   String filtro = '';
 
   @override
@@ -31,6 +33,7 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
   @override
   void dispose() {
     busquedaCtrl.dispose();
+    nuevoDominioCtrl.dispose();
     super.dispose();
   }
 
@@ -39,6 +42,7 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
     final permiso = await UsageService.tienePermiso();
     final seleccionadas = await UsageService.obtenerAppsDistractoras();
     final seleccionadasUtiles = await UsageService.obtenerAppsUtiles();
+    final doms = await UsageService.obtenerDominiosBloqueados();
     final isDefault = await UsageService.esLauncherPredeterminado();
     List<AppInfo> listaApps = [];
 
@@ -52,6 +56,7 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
       esLauncherDefault = isDefault;
       distractoras = seleccionadas.toSet();
       utiles = seleccionadasUtiles.toSet();
+      dominios = doms;
       apps = listaApps;
       cargando = false;
     });
@@ -364,10 +369,39 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                                       size: 16,
                                       color: modoLista == 1 ? Colors.white : Colores.tenue,
                                     ),
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: 4),
                                     Text(
-                                      'DISTRACTORAS (${distractoras.length})',
+                                      'APPS (${distractoras.length})',
                                       style: hud(8, color: modoLista == 1 ? Colors.white : Colores.tenue),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => modoLista = 2),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: modoLista == 2 ? Colores.sol : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.public_off_rounded,
+                                      size: 16,
+                                      color: modoLista == 2 ? Colores.noche : Colores.tenue,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'WEBS (${dominios.length})',
+                                      style: hud(8, color: modoLista == 2 ? Colores.noche : Colores.tenue),
                                     ),
                                   ],
                                 ),
@@ -381,37 +415,157 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
 
                   const SizedBox(height: 12),
 
-                  // Explicación del modo activo
-                  Text(
-                    modoLista == 0
-                        ? 'Selecciona las apps autorizadas para tu estudio. Solo estas se mostrarán en el Launcher durante el Modo Focus (ej. Calculadora, Navegador, Libros...):'
-                        : 'Marca las aplicaciones que consideras una tentación o distracción. Si las abres durante tu sesión de foco, quedarán registradas:',
-                    style: const TextStyle(color: Colores.tenue, fontSize: 12, height: 1.25),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Buscador de apps
-                  TextField(
-                    controller: busquedaCtrl,
-                    onChanged: (v) => setState(() => filtro = v.trim().toLowerCase()),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: 'Buscar aplicación...',
-                      prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Colores.tenue),
-                      suffixIcon: filtro.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear_rounded, size: 18),
-                              onPressed: () {
-                                busquedaCtrl.clear();
-                                setState(() => filtro = '');
-                              },
-                            )
-                          : null,
+                  if (modoLista == 2) ...[
+                    // Sección de Bloqueo de Sitios Web y Dominios
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colores.nocheClara,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colores.sol.withValues(alpha: 0.4)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.shield_outlined, color: Colores.sol, size: 20),
+                              const SizedBox(width: 8),
+                              Text('BLOQUEO DE JUEGOS Y WEBS', style: hud(9, color: Colores.sol)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Evita distracciones en el navegador durante tu sesión de estudio. Los siguientes dominios no estarán permitidos:',
+                            style: TextStyle(color: Colores.luna, fontSize: 12, height: 1.3),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: nuevoDominioCtrl,
+                                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    hintText: 'ej. roblox.com o juegos.com',
+                                    prefixIcon: const Icon(Icons.add_link_rounded, size: 18, color: Colores.sol),
+                                    filled: true,
+                                    fillColor: Colores.noche,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colores.sol,
+                                  foregroundColor: Colores.noche,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () async {
+                                  final txt = nuevoDominioCtrl.text.trim();
+                                  if (txt.isEmpty) return;
+                                  final messenger = ScaffoldMessenger.of(context);
+                                  await UsageService.agregarDominioBloqueado(txt);
+                                  nuevoDominioCtrl.clear();
+                                  final actualizados = await UsageService.obtenerDominiosBloqueados();
+                                  if (!mounted) return;
+                                  setState(() => dominios = actualizados);
+                                  messenger.showSnackBar(
+                                    SnackBar(content: Text('Dominio $txt añadido a la lista negra')),
+                                  );
+                                },
+                                child: const Text('Bloquear', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('LISTA DE DOMINIOS PROHIBIDOS', style: hud(8, color: Colores.tenue)),
+                        TextButton(
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            await UsageService.restablecerDominiosPredeterminados();
+                            final d = await UsageService.obtenerDominiosBloqueados();
+                            if (!mounted) return;
+                            setState(() => dominios = d);
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('Lista restablecida a los valores predeterminados')),
+                            );
+                          },
+                          child: const Text('Restablecer', style: TextStyle(color: Colores.tenue, fontSize: 11)),
+                        ),
+                      ],
+                    ),
+                    for (final dom in dominios)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colores.nocheClara,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colores.borde),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.public_off_rounded, color: Colores.coral, size: 16),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                dom,
+                                style: const TextStyle(color: Colores.luna, fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colores.tenue, size: 18),
+                              onPressed: () async {
+                                await UsageService.eliminarDominioBloqueado(dom);
+                                final d = await UsageService.obtenerDominiosBloqueados();
+                                setState(() => dominios = d);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                  ] else ...[
+                    // Explicación del modo activo
+                    Text(
+                      modoLista == 0
+                          ? 'Selecciona las apps autorizadas para tu estudio. Solo estas se mostrarán en el Launcher durante el Modo Focus (ej. Calculadora, Navegador, Libros...):'
+                          : 'Marca las aplicaciones que consideras una tentación o distracción. Si las abres durante tu sesión de foco, quedarán registradas:',
+                      style: const TextStyle(color: Colores.tenue, fontSize: 12, height: 1.25),
+                    ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 10),
+
+                    // Buscador de apps
+                    TextField(
+                      controller: busquedaCtrl,
+                      onChanged: (v) => setState(() => filtro = v.trim().toLowerCase()),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: 'Buscar aplicación...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Colores.tenue),
+                        suffixIcon: filtro.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18),
+                                onPressed: () {
+                                  busquedaCtrl.clear();
+                                  setState(() => filtro = '');
+                                },
+                              )
+                            : null,
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
 
                   // Lista filtrada de aplicaciones
                   for (final app in apps.where((a) =>
@@ -470,6 +624,7 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                         ),
                       ),
                     ),
+                  ],
                 ],
               ],
             ),

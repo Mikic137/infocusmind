@@ -31,8 +31,58 @@ class Colores {
   static const tenue = Color(0xFF908BAE);          // Texto secundario legible
 }
 
-TextStyle hud(double size, {Color color = Colores.sol}) =>
-    GoogleFonts.pressStart2p(fontSize: size, color: color, height: 1.4);
+enum EstiloVisual {
+  arcade, // Juvenil Arcade HUD / Pixel Art
+  maduro, // Minimalista Maduro / Ejecutivo
+  calido, // Biblioteca Cálida & Café
+}
+
+class GestorTema extends ChangeNotifier {
+  static final GestorTema instancia = GestorTema._();
+  GestorTema._();
+
+  EstiloVisual _estilo = EstiloVisual.arcade;
+  EstiloVisual get estilo => _estilo;
+
+  bool get esMaduro => _estilo == EstiloVisual.maduro;
+  bool get esCalido => _estilo == EstiloVisual.calido;
+
+  void cambiarEstilo(EstiloVisual nuevo) {
+    if (_estilo == nuevo) return;
+    _estilo = nuevo;
+    notifyListeners();
+  }
+
+  ThemeData temaActual() {
+    switch (_estilo) {
+      case EstiloVisual.maduro:
+        return temaMaduro();
+      case EstiloVisual.calido:
+        return temaCalido();
+      case EstiloVisual.arcade:
+        return temaJuego();
+    }
+  }
+}
+
+TextStyle hud(double size, {Color color = Colores.sol}) {
+  if (GestorTema.instancia.esMaduro) {
+    return GoogleFonts.inter(
+      fontSize: size * 1.3,
+      color: color,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.3,
+    );
+  }
+  if (GestorTema.instancia.esCalido) {
+    return GoogleFonts.lora(
+      fontSize: size * 1.25,
+      color: color,
+      fontWeight: FontWeight.w700,
+    );
+  }
+  return GoogleFonts.pressStart2p(fontSize: size, color: color, height: 1.4);
+}
 
 OutlineInputBorder _borde(Color c) => OutlineInputBorder(
   borderRadius: BorderRadius.circular(4),
@@ -350,4 +400,214 @@ class HudNivel extends StatelessWidget {
       ),
     );
   }
+}
+
+ThemeData temaMaduro() {
+  const bg = Color(0xFF0F172A); // Slate 900
+  const surface = Color(0xFF1E293B); // Slate 800
+  const border = Color(0xFF334155);
+  const accent = Color(0xFF6366F1); // Indigo
+
+  final base = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: accent,
+      brightness: Brightness.dark,
+      surface: surface,
+    ),
+  );
+
+  return base.copyWith(
+    scaffoldBackgroundColor: bg,
+    textTheme: base.textTheme.apply(
+      fontFamily: GoogleFonts.inter().fontFamily,
+      bodyColor: const Color(0xFFF8FAFC),
+      displayColor: const Color(0xFFF8FAFC),
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: bg,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      titleTextStyle: GoogleFonts.inter(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: surface,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: accent, width: 2)),
+    ),
+  );
+}
+
+ThemeData temaCalido() {
+  const bg = Color(0xFF1C1917); // Stone 900 cálido
+  const surface = Color(0xFF292524);
+  const border = Color(0xFF44403C);
+  const accent = Color(0xFFD97706); // Ámbar cálido
+
+  final base = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: accent,
+      brightness: Brightness.dark,
+      surface: surface,
+    ),
+  );
+
+  return base.copyWith(
+    scaffoldBackgroundColor: bg,
+    textTheme: base.textTheme.apply(
+      fontFamily: GoogleFonts.sourceSans3().fontFamily,
+      bodyColor: const Color(0xFFFAFAF9),
+      displayColor: const Color(0xFFFAFAF9),
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: bg,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      titleTextStyle: GoogleFonts.sourceSans3(
+        fontSize: 19,
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFFFEF3C7),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: surface,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: accent, width: 2)),
+    ),
+  );
+}
+
+void mostrarSelectorTema(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colores.nocheClara,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.palette_rounded, color: Colores.cian, size: 24),
+                const SizedBox(width: 10),
+                Text('Personalizar Estilo Visual', style: hud(11, color: Colores.luna)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Elige la apariencia que mejor se adapte a tu forma de estudiar:',
+              style: TextStyle(color: Colores.tenue, fontSize: 13),
+            ),
+            const SizedBox(height: 18),
+            _buildOpcionTema(
+              ctx,
+              estilo: EstiloVisual.arcade,
+              titulo: 'Juvenil / Cyberpunk HUD',
+              subtitulo: 'Estilo arcade retro con fuente pixel art y colores neón',
+              icono: Icons.sports_esports_rounded,
+              color: Colores.violeta,
+            ),
+            const SizedBox(height: 10),
+            _buildOpcionTema(
+              ctx,
+              estilo: EstiloVisual.maduro,
+              titulo: 'Maduro / Minimalista Ejecutivo',
+              subtitulo: 'Tipografía moderna limpia, tonos sobrios y sin exceso de IA',
+              icono: Icons.workspace_premium_rounded,
+              color: Colores.cian,
+            ),
+            const SizedBox(height: 10),
+            _buildOpcionTema(
+              ctx,
+              estilo: EstiloVisual.calido,
+              titulo: 'Biblioteca Cálida & Café',
+              subtitulo: 'Ambiente sereno, tonos ámbar y lectura relajante',
+              icono: Icons.menu_book_rounded,
+              color: Colores.sol,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _buildOpcionTema(
+  BuildContext context, {
+  required EstiloVisual estilo,
+  required String titulo,
+  required String subtitulo,
+  required IconData icono,
+  required Color color,
+}) {
+  final seleccionado = GestorTema.instancia.estilo == estilo;
+  return InkWell(
+    onTap: () {
+      GestorTema.instancia.cambiarEstilo(estilo);
+      Navigator.of(context).pop();
+    },
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: seleccionado ? color.withValues(alpha: 0.15) : Colores.noche,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: seleccionado ? color : Colores.borde,
+          width: seleccionado ? 2 : 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icono, color: color, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitulo,
+                  style: const TextStyle(color: Colores.tenue, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          if (seleccionado)
+            Icon(Icons.check_circle_rounded, color: color, size: 20),
+        ],
+      ),
+    ),
+  );
 }

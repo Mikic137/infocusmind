@@ -13,6 +13,8 @@ import '../focus/focus_page.dart';
 import '../launcher/launcher_screen.dart';
 import '../roadmap/roadmap_view.dart';
 import '../progress/progress_view.dart';
+import '../tutorial/tutorial_guide_page.dart';
+import '../admin/admin_dashboard_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -578,6 +580,29 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.palette_outlined, color: Colores.lila),
+            tooltip: 'Estilo Visual (Juvenil / Maduro)',
+            onPressed: () => mostrarSelectorTema(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded, color: Colores.menta),
+            tooltip: 'Cómo funciona InfocusMind (Tutorial)',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TutorialGuidePage()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.admin_panel_settings_rounded, color: Colores.sol),
+            tooltip: 'Panel de Administrador (Métricas)',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.home_rounded, color: Colores.cian),
             tooltip: 'Pantalla de inicio (Launcher)',

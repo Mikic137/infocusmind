@@ -20,6 +20,9 @@ class AuthService {
           await _storage
               .write(key: 'token', value: token)
               .timeout(const Duration(seconds: 3));
+          await _storage
+              .write(key: 'user_email', value: email)
+              .timeout(const Duration(seconds: 3));
         } catch (e) {
           debugPrint('Error guardando token: $e');
         }
@@ -64,6 +67,42 @@ class AuthService {
       return t != null;
     } catch (_) {
       return false;
+    }
+  }
+
+  static Future<String?> autenticarConGoogle(String email) async {
+    try {
+      final r = await dio.post('/auth/google', data: {'email': email});
+      final token = r.data['token']?.toString();
+      if (token != null) {
+        try {
+          await _storage
+              .write(key: 'token', value: token)
+              .timeout(const Duration(seconds: 3));
+          await _storage
+              .write(key: 'user_email', value: email)
+              .timeout(const Duration(seconds: 3));
+        } catch (e) {
+          debugPrint('Error guardando token: $e');
+        }
+      }
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.data is Map) {
+        final map = e.response!.data as Map;
+        return map['error']?.toString() ?? 'Error al autenticar con Google';
+      }
+      return 'No se pudo conectar con el servidor Google Auth';
+    } catch (e) {
+      return 'Error inesperado: $e';
+    }
+  }
+
+  static Future<String?> obtenerCorreoUsuario() async {
+    try {
+      return await _storage.read(key: 'user_email');
+    } catch (_) {
+      return null;
     }
   }
 

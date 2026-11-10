@@ -257,7 +257,7 @@ class _AssistantViewState extends State<AssistantView> {
                       const SizedBox(height: 6),
                       const Text(
                         'Escribe una meta grande, examen o proyecto. DeepSeek lo fragmentará en micro-pasos con tiempos reales y foco gamificado.',
-                        style: TextStyle(color: Colores.tenue, fontSize: 13, height: 1.3),
+                        style: TextStyle(color: Colores.tenue, fontSize: 15, height: 1.4),
                       ),
                     ],
                   ),
@@ -517,7 +517,7 @@ class _AssistantViewState extends State<AssistantView> {
                     ),
                     child: Text(
                       m.texto,
-                      style: const TextStyle(fontSize: 15, height: 1.25, color: Colores.luna),
+                      style: const TextStyle(fontSize: 17, height: 1.4, color: Colores.luna),
                     ),
                   ),
                 );

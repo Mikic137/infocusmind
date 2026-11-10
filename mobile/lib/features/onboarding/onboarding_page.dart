@@ -4,6 +4,7 @@ import '../../core/api_client.dart';
 import '../../core/modelos.dart';
 import '../../core/tema.dart';
 import '../home/home_page.dart';
+import '../tutorial/tutorial_guide_page.dart';
 
 class Mensaje {
   final String rol; // 'user' o 'model'
@@ -88,21 +89,37 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Align(
       alignment: usuario ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints: const BoxConstraints(maxWidth: 300),
+        margin: const EdgeInsets.symmetric(vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.84,
+        ),
         decoration: BoxDecoration(
           color: usuario ? Colores.violeta : Colores.nocheClara,
           border: usuario ? null : Border.all(color: Colores.borde, width: 2),
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(18),
-            topRight: const Radius.circular(18),
-            bottomLeft: Radius.circular(usuario ? 18 : 4),
-            bottomRight: Radius.circular(usuario ? 4 : 18),
+            topLeft: const Radius.circular(20),
+            topRight: const Radius.circular(20),
+            bottomLeft: Radius.circular(usuario ? 20 : 4),
+            bottomRight: Radius.circular(usuario ? 4 : 20),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              offset: const Offset(0, 3),
+              blurRadius: 6,
+            ),
+          ],
+        ),
+        child: Text(
+          m.texto,
+          style: const TextStyle(
+            fontSize: 18,
+            height: 1.45,
+            fontWeight: FontWeight.w400,
+            color: Colores.luna,
           ),
         ),
-        child: Text(m.texto,
-            style: const TextStyle(fontSize: 16, height: 1.2, color: Colores.luna)),
       ),
     );
   }
@@ -111,7 +128,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget build(BuildContext context) {
     final total = mensajes.length + (esperando ? 1 : 0);
     return Scaffold(
-      appBar: AppBar(title: const Text('Conozcámonos')),
+      appBar: AppBar(
+        title: const Text('Conozcámonos'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded, color: Colores.cian),
+            tooltip: 'Ver Tutorial',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const TutorialGuidePage()),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [

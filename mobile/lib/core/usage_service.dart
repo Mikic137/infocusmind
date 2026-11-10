@@ -37,6 +37,70 @@ class UsageService {
   static const _claveDistractoras = 'apps_distractoras';
   static const _claveUtiles = 'apps_utiles';
   static const _claveHistorialDistracciones = 'historial_distracciones';
+  static const _claveDominiosBloqueados = 'dominios_bloqueados';
+
+  static const List<String> dominiosPredeterminados = [
+    'youtube.com',
+    'tiktok.com',
+    'instagram.com',
+    'facebook.com',
+    'twitter.com',
+    'x.com',
+    'roblox.com',
+    'poki.com',
+    'twitch.tv',
+    'netflix.com',
+    'discord.com',
+    'reddit.com',
+    'friv.com',
+    'cuevana.pro',
+    'animeflv.net',
+  ];
+
+  /// Obtiene la lista de sitios web y dominios bloqueados para el estudio
+  static Future<List<String>> obtenerDominiosBloqueados() async {
+    try {
+      final raw = await _almacen.read(key: _claveDominiosBloqueados);
+      if (raw == null || raw.isEmpty) return List.from(dominiosPredeterminados);
+      final List<dynamic> lista = jsonDecode(raw);
+      return lista.map((e) => e.toString().toLowerCase().trim()).toList();
+    } catch (_) {
+      return List.from(dominiosPredeterminados);
+    }
+  }
+
+  /// Guarda la lista actualizada de dominios bloqueados
+  static Future<void> guardarDominiosBloqueados(List<String> dominios) async {
+    await _almacen.write(key: _claveDominiosBloqueados, value: jsonEncode(dominios));
+  }
+
+  /// Añade un nuevo dominio al bloqueador
+  static Future<void> agregarDominioBloqueado(String dominio) async {
+    final dom = dominio
+        .toLowerCase()
+        .trim()
+        .replaceAll('http://', '')
+        .replaceAll('https://', '')
+        .split('/')[0];
+    if (dom.isEmpty) return;
+    final actuales = await obtenerDominiosBloqueados();
+    if (!actuales.contains(dom)) {
+      actuales.add(dom);
+      await guardarDominiosBloqueados(actuales);
+    }
+  }
+
+  /// Elimina un dominio de la lista negra
+  static Future<void> eliminarDominioBloqueado(String dominio) async {
+    final actuales = await obtenerDominiosBloqueados();
+    actuales.remove(dominio.toLowerCase().trim());
+    await guardarDominiosBloqueados(actuales);
+  }
+
+  /// Restablece los dominios a los predeterminados de fábrica
+  static Future<void> restablecerDominiosPredeterminados() async {
+    await guardarDominiosBloqueados(dominiosPredeterminados);
+  }
 
   /// Comprueba si el usuario ya concedió el permiso de "Acceso a datos de uso".
   static Future<bool> tienePermiso() async {

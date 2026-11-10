@@ -524,6 +524,24 @@ void main() async {
             400, {'error': 'La contraseña debe tener al menos 8 caracteres'});
       }
 
+      final debiles = {
+        '12345678', '123456789', '1234567890', 'password', 'contraseña',
+        'qwertyuiop', '11111111', '87654321', 'abcdefgh', 'infocusmind'
+      };
+      if (debiles.contains(password.toLowerCase())) {
+        return json(400, {
+          'error':
+              'La contraseña es muy común y fácil de adivinar. Elige una más segura.'
+        });
+      }
+      if (!password.contains(RegExp(r'[A-Z]')) ||
+          !password.contains(RegExp(r'[0-9]'))) {
+        return json(400, {
+          'error':
+              'La contraseña debe incluir al menos una letra mayúscula y un número.'
+        });
+      }
+
       final hash = BCrypt.hashpw(password, BCrypt.gensalt());
       final conn = await abrirConexion();
       try {
@@ -547,6 +565,53 @@ void main() async {
     } catch (e) {
       print('Error en /register: $e');
       return json(500, {'error': 'Error en register: $e'});
+    }
+  });
+
+  router.post('/auth/google', (Request request) async {
+    try {
+      final data = jsonDecode(await request.readAsString());
+      final email = (data['email'] ?? '').toString().trim().toLowerCase();
+
+      if (!email.contains('@') || email.length < 6) {
+        return json(400, {'error': 'Correo de Google no válido'});
+      }
+
+      final conn = await abrirConexion();
+      try {
+        final r = await conn.execute(
+          Sql.named('SELECT id FROM users WHERE email = @email'),
+          parameters: {'email': email},
+        );
+
+        int userId;
+        if (r.isNotEmpty) {
+          userId = r.first[0] as int;
+        } else {
+          final randomHash = BCrypt.hashpw(
+              'google_auth_${DateTime.now().microsecondsSinceEpoch}_$email',
+              BCrypt.gensalt());
+          final nuevo = await conn.execute(
+            Sql.named(
+              'INSERT INTO users (email, password_hash) '
+              'VALUES (@email, @hash) RETURNING id',
+            ),
+            parameters: {'email': email, 'hash': randomHash},
+          );
+          userId = nuevo.first[0] as int;
+        }
+
+        return json(200, {
+          'token': crearToken(userId),
+          'email': email,
+          'user_id': userId,
+        });
+      } finally {
+        await conn.close();
+      }
+    } catch (e) {
+      print('Error en /auth/google: $e');
+      return json(500, {'error': 'Error en autenticación Google: $e'});
     }
   });
 

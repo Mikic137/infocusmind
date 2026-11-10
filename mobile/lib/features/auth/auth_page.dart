@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/auth_service.dart';
 import '../../core/destino.dart';
 import '../../core/tema.dart';
+import '../../core/update_service.dart';
 import '../../core/usage_service.dart';
 
 class AuthPage extends StatefulWidget {
@@ -21,6 +22,14 @@ class _AuthPageState extends State<AuthPage> {
   bool verPassword = false;
   bool verConfirmPassword = false;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateService.comprobarActualizacion(context);
+    });
+  }
 
   // Evaluación de fortaleza de contraseña
   bool get tieneMinimo8 => passwordController.text.length >= 8;
@@ -261,6 +270,68 @@ class _AuthPageState extends State<AuthPage> {
                   const SizedBox(height: 16),
 
                   Text('InfocusMind', style: hud(22, color: Colores.luna)),
+                  const SizedBox(height: 10),
+
+                  // Banner elegante para descargar la versión más reciente
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colores.sol.withValues(alpha: 0.16),
+                          Colores.nocheClara,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colores.sol.withValues(alpha: 0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.download_for_offline_rounded, color: Colores.sol, size: 24),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Versión v1.1.0 Disponible',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                'Descarga la app oficial actualizada',
+                                style: TextStyle(
+                                  color: Colores.tenue,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colores.sol,
+                            foregroundColor: Colores.noche,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () => UsageService.abrirUrl(
+                            'https://infocusmind-production.up.railway.app/descargar',
+                          ),
+                          icon: const Icon(Icons.download_rounded, size: 16),
+                          label: const Text(
+                            'Descargar',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 6),
 
                   // Selector diferenciado tipo Tabs
@@ -577,6 +648,28 @@ class _AuthPageState extends State<AuthPage> {
                     },
                     icon: const Icon(Icons.wifi_find_rounded, size: 15, color: Colores.tenue),
                     label: const Text('Comprobar conexión con servidor', style: TextStyle(color: Colores.tenue, fontSize: 12)),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Botón directo para descargar actualización
+                  SizedBox(
+                    width: double.infinity,
+                    height: 42,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colores.sol,
+                        side: const BorderSide(color: Colores.sol, width: 1.2),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () => UsageService.abrirUrl(
+                        'https://infocusmind-production.up.railway.app/descargar',
+                      ),
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: const Text(
+                        'Descargar InfocusMind v1.1.0 (APK)',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
                   ),
                 ],
               ),

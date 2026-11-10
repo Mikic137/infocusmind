@@ -1473,10 +1473,10 @@ void main() async {
       if (vCode == null || vCode < 2) {
         return json(426, {
           'error':
-              '⚠️ ACTUALIZACIÓN OBLIGATORIA: InfocusMind v1.1.0 ya está disponible con acceso Google, bloqueo de sitios web y más seguridad. Por favor descarga e instala la actualización en: https://infocusmind-production.up.railway.app/download/InfocusMind.apk',
+              '⚠️ ACTUALIZACIÓN REQUERIDA: InfocusMind v1.1.0 ya está disponible. Pulsa el botón de descarga o visita: https://infocusmind-production.up.railway.app/descargar',
           'upgrade_required': true,
           'download_url':
-              'https://infocusmind-production.up.railway.app/download/InfocusMind.apk',
+              'https://infocusmind-production.up.railway.app/descargar',
         });
       }
     }

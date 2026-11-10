@@ -6,6 +6,7 @@ import '../../core/auth_service.dart';
 import '../../core/modelos.dart';
 import '../../core/tema.dart';
 import '../../core/usage_service.dart';
+import '../../core/update_service.dart';
 import '../assistant/assistant_view.dart';
 import '../auth/auth_page.dart';
 import '../distractions/distraction_settings_page.dart';
@@ -34,6 +35,10 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     cargar();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateService.comprobarActualizacion(context);
+    });
 
     UsageService.onHomePressed = () {
       if (mounted) setState(() => enModoLauncher = true);

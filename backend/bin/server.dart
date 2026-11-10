@@ -486,6 +486,21 @@ void main() async {
     return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.0/InfocusMind.apk'));
   });
 
+  // Endpoint de comprobacion y forzado de actualizacion
+  router.get('/app/version', (Request request) async {
+    return json(200, {
+      'latest_version': '1.1.0',
+      'latest_version_code': 2,
+      'min_required_version_code': 2,
+      'force_update': true,
+      'title': 'Actualización Requerida a InfocusMind v1.1.0',
+      'message':
+          'Hemos lanzado InfocusMind v1.1.0 con acceso por Google, mayor seguridad en contraseñas, tutorial interactivo, bloqueo de dominios web y selector de estilos de estudio. Por favor actualiza para continuar usando la app.',
+      'download_url':
+          'https://infocusmind-production.up.railway.app/download/InfocusMind.apk',
+    });
+  });
+
   router.get('/admin/metrics', (Request req) => handleMetrics(req, abrirConexion));
 
   router.get('/health', (Request request) async {
@@ -1434,7 +1449,32 @@ void main() async {
   });
 
     final port = int.tryParse(env['PORT'] ?? '') ?? 8080;
-  final server = await io.serve(router.call, '0.0.0.0', port);
+  Handler handlerConVersion = (Request req) async {
+    final p = req.url.path;
+    final esPublico = p.isEmpty ||
+        p == 'health' ||
+        p.startsWith('admin') ||
+        p.startsWith('download') ||
+        p.startsWith('privacy') ||
+        p.startsWith('app/version');
+
+    if (!esPublico) {
+      final vCode = int.tryParse(req.headers['x-app-version-code'] ?? '');
+      // Si la petición viene de una app móvil sin la cabecera v1.1.0 (código 2)
+      if (vCode == null || vCode < 2) {
+        return json(426, {
+          'error':
+              '⚠️ ACTUALIZACIÓN OBLIGATORIA: InfocusMind v1.1.0 ya está disponible con acceso Google, bloqueo de sitios web y más seguridad. Por favor descarga e instala la actualización en: https://infocusmind-production.up.railway.app/download/InfocusMind.apk',
+          'upgrade_required': true,
+          'download_url':
+              'https://infocusmind-production.up.railway.app/download/InfocusMind.apk',
+        });
+      }
+    }
+    return router.call(req);
+  };
+
+  final server = await io.serve(handlerConVersion, '0.0.0.0', port);
   print('InfocusMind API en puerto ${server.port}');
 
   // Inicializar tablas en segundo plano sin bloquear el arranque del servidor HTTP

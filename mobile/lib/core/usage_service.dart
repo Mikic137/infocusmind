@@ -102,6 +102,15 @@ class UsageService {
     await guardarDominiosBloqueados(dominiosPredeterminados);
   }
 
+  /// Abre cualquier URL en el navegador del teléfono (ej. para descargar APK o Aptoide).
+  static Future<void> abrirUrl(String url) async {
+    try {
+      await _canal.invokeMethod('openUrl', {'url': url});
+    } catch (e) {
+      debugPrint('Error al abrir URL $url: $e');
+    }
+  }
+
   /// Comprueba si el usuario ya concedió el permiso de "Acceso a datos de uso".
   static Future<bool> tienePermiso() async {
     try {

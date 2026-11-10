@@ -109,6 +109,18 @@ class MainActivity : FlutterActivity() {
                     }
                     result.success(true)
                 }
+                "openUrl" -> {
+                    val url = call.argument<String>("url") ?: ""
+                    try {
+                        val browserIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(browserIntent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("ERROR", e.message, null)
+                    }
+                }
                 "launchApp" -> {
                     val pkg = call.argument<String>("package") ?: ""
                     val launchIntent = packageManager.getLaunchIntentForPackage(pkg)

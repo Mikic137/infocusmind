@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/auth_service.dart';
 import '../../core/destino.dart';
 import '../../core/tema.dart';
+import '../../core/usage_service.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -500,26 +501,38 @@ class _AuthPageState extends State<AuthPage> {
 
                   if (error != null) ...[
                     const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colores.coral.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colores.coral.withValues(alpha: 0.4)),
+                    if (error!.toLowerCase().contains('actualiz') ||
+                        error!.contains('1.1.0') ||
+                        error!.contains('426') ||
+                        error!.contains('download')) ...[
+                      _TarjetaActualizacionElegante(
+                        mensaje: error!,
+                        onDescargar: () => UsageService.abrirUrl(
+                          'https://infocusmind-production.up.railway.app/descargar',
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline, color: Colores.coral, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              error!,
-                              style: const TextStyle(color: Colores.coral, fontSize: 12),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colores.coral.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colores.coral.withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: Colores.coral, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                error!,
+                                style: const TextStyle(color: Colores.coral, fontSize: 12),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
 
                   const SizedBox(height: 22),
@@ -592,6 +605,188 @@ class _AuthPageState extends State<AuthPage> {
                 color: cumple ? Colores.luna : Colores.tenue,
                 fontSize: 11,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TarjetaActualizacionElegante extends StatelessWidget {
+  final String mensaje;
+  final VoidCallback onDescargar;
+
+  const _TarjetaActualizacionElegante({
+    required this.mensaje,
+    required this.onDescargar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colores.sol.withValues(alpha: 0.18),
+            Colores.violeta.withValues(alpha: 0.22),
+            Colores.nocheClara,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colores.sol, width: 1.6),
+        boxShadow: [
+          BoxShadow(
+            color: Colores.sol.withValues(alpha: 0.25),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Colores.sol, Color(0xFFFFA502)],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colores.sol.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.system_update_rounded,
+                  color: Color(0xFF11111B),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colores.sol.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colores.sol.withValues(alpha: 0.6)),
+                      ),
+                      child: const Text(
+                        '⚡ ACTUALIZACIÓN REQUERIDA',
+                        style: TextStyle(
+                          color: Colores.sol,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'InfocusMind v1.1.0 Disponible',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Hemos lanzado una versión con acceso Google, mayor seguridad en contraseñas, tutorial interactivo, bloqueo de dominios web y selector de temas.',
+            style: TextStyle(color: Colores.luna, fontSize: 12, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _BeneficioItem(texto: 'Acceso directo con cuenta Google / Gmail'),
+                _BeneficioItem(texto: 'Bloqueo de sitios web (YouTube, TikTok, Juegos)'),
+                _BeneficioItem(texto: 'Selector de estilos (Maduro, Juvenil, Cálido)'),
+                _BeneficioItem(texto: 'Guía tutorial interactiva paso a paso'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colores.sol,
+                foregroundColor: const Color(0xFF11111B),
+                elevation: 6,
+                shadowColor: Colores.sol.withValues(alpha: 0.6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: onDescargar,
+              icon: const Icon(Icons.download_rounded, size: 22),
+              label: const Text(
+                'DESCARGAR E INSTALAR AHORA',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Center(
+            child: Text(
+              'Descarga directa oficial sin esperas',
+              style: TextStyle(color: Colores.tenue, fontSize: 10),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BeneficioItem extends StatelessWidget {
+  final String texto;
+  const _BeneficioItem({required this.texto});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle_rounded, color: Colores.menta, size: 14),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              texto,
+              style: const TextStyle(color: Colores.luna, fontSize: 11),
             ),
           ),
         ],

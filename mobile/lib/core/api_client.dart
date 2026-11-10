@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../main.dart';
+import 'update_service.dart';
 
 const _almacen = FlutterSecureStorage();
 
@@ -33,5 +35,14 @@ final dio = Dio(BaseOptions(
         }
       } catch (_) {}
       return handler.next(options);
+    },
+    onError: (DioException err, handler) {
+      if (err.response?.statusCode == 426) {
+        final ctx = globalNavigatorKey.currentContext;
+        if (ctx != null) {
+          UpdateService.mostrarTarjetaActualizacion(ctx);
+        }
+      }
+      return handler.next(err);
     },
   ));

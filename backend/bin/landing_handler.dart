@@ -6,7 +6,7 @@ Future<Response> handleLanding(Request request) async {
   final customDownloadUrl = env['APK_DOWNLOAD_URL'];
   final downloadHref = (customDownloadUrl != null && customDownloadUrl.trim().isNotEmpty)
       ? customDownloadUrl.trim()
-      : '/download/InfocusMind.apk';
+      : '/download/InfocusMind_v1.1.2.apk';
 
   final html = '''<!DOCTYPE html>
 <html lang="es">
@@ -485,7 +485,7 @@ Future<Response> handleLanding(Request request) async {
         <a href="#launcher" class="nav-link">Modo Launcher</a>
         <a href="#instalacion" class="nav-link">Instalación</a>
         <a href="/admin/metrics?key=infocus2026" class="nav-link">Métricas</a>
-        <a href="$downloadHref" class="btn-nav">Descargar APK v1.1.0</a>
+        <a href="$downloadHref" class="btn-nav">Descargar APK v1.1.2</a>
       </nav>
     </div>
   </header>
@@ -493,7 +493,7 @@ Future<Response> handleLanding(Request request) async {
   <!-- Hero Section -->
   <main class="hero">
     <div class="badge-hero">
-      <span>⚡ NUEVA VERSIÓN</span> InfocusMind v1.1.0 Oficial ya disponible
+      <span>⚡ NUEVA VERSIÓN</span> InfocusMind v1.1.2 Oficial ya disponible
     </div>
     <h1 class="hero-title">
       Convierte tu estudio en un videojuego y <span class="gradient-text">derrota las distracciones</span>
@@ -503,9 +503,9 @@ Future<Response> handleLanding(Request request) async {
     </p>
 
     <div class="cta-group">
-      <a href="$downloadHref" class="btn-download" download>
+      <a href="$downloadHref" class="btn-download" download="InfocusMind_v1.1.2.apk">
         <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
-        Descargar APK v1.1.0 Directo
+        Descargar APK v1.1.2 Directo
       </a>
       <a href="#instalacion" class="btn-secondary">
         ¿Cómo instalar en Android?
@@ -513,7 +513,7 @@ Future<Response> handleLanding(Request request) async {
     </div>
 
     <div class="specs-line">
-      <div class="spec-item"><div class="spec-dot"></div> Versión 1.1.0 Oficial</div>
+      <div class="spec-item"><div class="spec-dot"></div> Versión 1.1.2 Oficial</div>
       <div class="spec-item"><div class="spec-dot"></div> Compatible con Android 8.0+</div>
       <div class="spec-item"><div class="spec-dot"></div> 100% Gratuito y Sin Anuncios</div>
     </div>
@@ -638,7 +638,7 @@ Future<Response> handleLanding(Request request) async {
         <div class="step-item">
           <div class="step-number">01</div>
           <h4>Descarga el APK</h4>
-          <p>Pulsa el botón amarillo de descarga desde tu celular para bajar el archivo <code>InfocusMind.apk</code>.</p>
+          <p>Pulsa el botón amarillo de descarga desde tu celular para bajar el archivo <code>InfocusMind_v1.1.2.apk</code>.</p>
         </div>
         <div class="step-item">
           <div class="step-number">02</div>

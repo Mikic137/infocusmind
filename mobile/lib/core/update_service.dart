@@ -4,8 +4,8 @@ import 'tema.dart';
 import 'usage_service.dart';
 
 class UpdateService {
-  static const int codigoVersionActual = 2; // v1.1.0
-  static const String nombreVersionActual = '1.1.0';
+  static const int codigoVersionActual = 3; // v1.1.2
+  static const String nombreVersionActual = '1.1.2';
 
   static bool _dialogoMostrado = false;
 
@@ -19,9 +19,9 @@ class UpdateService {
         final data = r.data as Map;
         final minCode = (data['min_required_version_code'] as num?)?.toInt() ?? 1;
         final latestCode = (data['latest_version_code'] as num?)?.toInt() ?? 1;
-        final latestVersion = data['latest_version']?.toString() ?? '1.1.0';
+        final latestVersion = data['latest_version']?.toString() ?? '1.1.2';
         final urlDescarga = data['download_url']?.toString() ??
-            'https://infocusmind-production.up.railway.app/download/InfocusMind.apk';
+            'https://infocusmind-production.up.railway.app/download/InfocusMind_v1.1.2.apk';
         final mensaje = data['message']?.toString() ??
             'Hay una nueva versión obligatoria disponible con mejoras de seguridad y nuevas funciones.';
         final force = data['force_update'] == true || codigoVersionActual < minCode;
@@ -45,11 +45,11 @@ class UpdateService {
   /// Muestra la tarjeta elegante de actualización obligatoria
   static Future<void> mostrarTarjetaActualizacion(
     BuildContext context, {
-    String version = '1.1.0',
+    String version = '1.1.2',
     String? mensaje,
     String? url,
   }) async {
-    final urlFinal = url ?? 'https://infocusmind-production.up.railway.app/descargar';
+    final urlFinal = url ?? 'https://infocusmind-production.up.railway.app/download/InfocusMind_v1.1.2.apk';
     final mensajeFinal = mensaje ??
         'Hemos lanzado una versión con acceso directo por Google, mayor seguridad en contraseñas, tutorial interactivo, bloqueo de dominios web y selector de estilos de estudio.';
 

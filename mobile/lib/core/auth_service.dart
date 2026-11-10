@@ -113,4 +113,19 @@ class AuthService {
           .timeout(const Duration(seconds: 2));
     } catch (_) {}
   }
+
+  static Future<bool> esTutorialCompletado() async {
+    try {
+      final v = await _storage.read(key: 'tutorial_completado_v112');
+      return v == 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> guardarTutorialCompletado() async {
+    try {
+      await _storage.write(key: 'tutorial_completado_v112', value: 'true');
+    } catch (_) {}
+  }
 }

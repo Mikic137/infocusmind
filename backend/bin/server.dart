@@ -472,8 +472,23 @@ void main() async {
     if (apkUrl != null && apkUrl.trim().isNotEmpty) {
       return Response.found(Uri.parse(apkUrl.trim()));
     }
-    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.0/InfocusMind.apk'));
+    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.2/InfocusMind_v1.1.2.apk'));
   }
+
+  router.get('/download/InfocusMind_v1.1.2.apk', (Request request) async {
+    final localFile = File('public/InfocusMind_v1.1.2.apk');
+    if (await localFile.exists()) {
+      return Response.ok(
+        localFile.openRead(),
+        headers: {
+          'content-type': 'application/vnd.android.package-archive',
+          'content-disposition': 'attachment; filename="InfocusMind_v1.1.2.apk"',
+          'content-length': (await localFile.length()).toString(),
+        },
+      );
+    }
+    return _redirigirDescargaApk();
+  });
 
   router.get('/download/InfocusMind.apk', (Request request) async {
     final localFile = File('public/InfocusMind.apk');
@@ -496,15 +511,15 @@ void main() async {
   // Endpoint de comprobacion y forzado de actualizacion
   router.get('/app/version', (Request request) async {
     return json(200, {
-      'latest_version': '1.1.0',
-      'latest_version_code': 2,
-      'min_required_version_code': 2,
+      'latest_version': '1.1.2',
+      'latest_version_code': 3,
+      'min_required_version_code': 3,
       'force_update': true,
-      'title': 'Actualización Requerida a InfocusMind v1.1.0',
+      'title': 'Actualización Requerida a InfocusMind v1.1.2',
       'message':
-          'Hemos lanzado InfocusMind v1.1.0 con acceso por Google, mayor seguridad en contraseñas, tutorial interactivo, bloqueo de dominios web y selector de estilos de estudio. Por favor actualiza para continuar usando la app.',
+          'Hemos lanzado InfocusMind v1.1.2 con tutorial interactivo guiado paso a paso, mayor seguridad, optimizaciones de interfaz y descarga identificada.',
       'download_url':
-          'https://infocusmind-production.up.railway.app/download/InfocusMind.apk',
+          'https://infocusmind-production.up.railway.app/download/InfocusMind_v1.1.2.apk',
     });
   });
 
@@ -1469,11 +1484,11 @@ void main() async {
 
     if (!esPublico) {
       final vCode = int.tryParse(req.headers['x-app-version-code'] ?? '');
-      // Si la petición viene de una app móvil sin la cabecera v1.1.0 (código 2)
-      if (vCode == null || vCode < 2) {
+      // Si la petición viene de una app móvil sin la cabecera v1.1.2 (código 3)
+      if (vCode == null || vCode < 3) {
         return json(426, {
           'error':
-              '⚠️ ACTUALIZACIÓN REQUERIDA: InfocusMind v1.1.0 ya está disponible. Pulsa el botón de descarga o visita: https://infocusmind-production.up.railway.app/descargar',
+              '⚠️ ACTUALIZACIÓN REQUERIDA: InfocusMind v1.1.2 ya está disponible. Pulsa el botón de descarga o visita: https://infocusmind-production.up.railway.app/descargar',
           'upgrade_required': true,
           'download_url':
               'https://infocusmind-production.up.railway.app/descargar',

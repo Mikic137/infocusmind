@@ -14,7 +14,6 @@ import '../launcher/launcher_screen.dart';
 import '../roadmap/roadmap_view.dart';
 import '../progress/progress_view.dart';
 import '../tutorial/tutorial_guide_page.dart';
-import '../admin/admin_dashboard_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -29,11 +28,21 @@ class _HomePageState extends State<HomePage> {
   String? error;
   int pestana = 0;
   bool enModoLauncher = false;
+  bool _tutorialCompletado = true;
 
   @override
   void initState() {
     super.initState();
     cargar();
+
+    AuthService.esTutorialCompletado().then((listo) {
+      if (!listo && mounted) {
+        setState(() => _tutorialCompletado = false);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _lanzarTutorialInicial();
+        });
+      }
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UpdateService.comprobarActualizacion(context);
@@ -48,6 +57,19 @@ class _HomePageState extends State<HomePage> {
         setState(() => enModoLauncher = true);
       }
     });
+  }
+
+  void _lanzarTutorialInicial() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TutorialGuidePage(
+          bloqueante: true,
+          onCompletado: () {
+            if (mounted) setState(() => _tutorialCompletado = true);
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -623,10 +645,6 @@ class _HomePageState extends State<HomePage> {
             onSelected: (val) {
               if (val == 'launcher') {
                 setState(() => enModoLauncher = true);
-              } else if (val == 'admin') {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
-                );
               } else if (val == 'logout') {
                 salir();
               }
@@ -639,16 +657,6 @@ class _HomePageState extends State<HomePage> {
                     Icon(Icons.home_rounded, color: Colores.cian, size: 20),
                     SizedBox(width: 10),
                     Text('Modo Launcher', style: TextStyle(color: Colors.white, fontSize: 13)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'admin',
-                child: Row(
-                  children: [
-                    Icon(Icons.admin_panel_settings_rounded, color: Colores.sol, size: 20),
-                    SizedBox(width: 10),
-                    Text('Panel Administrador', style: TextStyle(color: Colors.white, fontSize: 13)),
                   ],
                 ),
               ),
@@ -713,7 +721,27 @@ class _HomePageState extends State<HomePage> {
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: pestana,
-        onDestinationSelected: (i) => setState(() => pestana = i),
+        onDestinationSelected: (i) {
+          if (!_tutorialCompletado && i != 0) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: Colores.nocheClara,
+                content: const Text(
+                  '🔒 Completa el tutorial para desbloquear esta función',
+                  style: TextStyle(color: Colores.luna, fontSize: 13),
+                ),
+                action: SnackBarAction(
+                  label: 'Ver tutorial',
+                  textColor: Colores.sol,
+                  onPressed: _lanzarTutorialInicial,
+                ),
+              ),
+            );
+            return;
+          }
+          setState(() => pestana = i);
+        },
         destinations: const [
           NavigationDestination(
               icon: Icon(Icons.checklist_rounded), label: 'Misiones'),

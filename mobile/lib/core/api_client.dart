@@ -14,8 +14,8 @@ final dio = Dio(BaseOptions(
   ..interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) async {
       // Identificador de versión oficial de la aplicación móvil
-      options.headers['x-app-version'] = '1.1.0';
-      options.headers['x-app-version-code'] = '2';
+      options.headers['x-app-version'] = '1.1.2';
+      options.headers['x-app-version-code'] = '3';
 
       // Rutas públicas que no requieren token de sesión
       final path = options.path;

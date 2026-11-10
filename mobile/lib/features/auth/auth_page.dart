@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/api_client.dart';
 import '../../core/auth_service.dart';
 import '../../core/destino.dart';
 import '../../core/tema.dart';
@@ -22,13 +23,34 @@ class _AuthPageState extends State<AuthPage> {
   bool verPassword = false;
   bool verConfirmPassword = false;
   String? error;
+  bool hayNuevaVersion = false;
+  String urlDescarga = 'https://infocusmind-production.up.railway.app/descargar';
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      UpdateService.comprobarActualizacion(context);
-    });
+    _verificarSiRequiereActualizacion();
+  }
+
+  Future<void> _verificarSiRequiereActualizacion() async {
+    try {
+      final r = await dio.get('/app/version');
+      if (r.statusCode == 200 && r.data is Map) {
+        final data = r.data as Map;
+        final latestCode = (data['latest_version_code'] as num?)?.toInt() ?? 1;
+        final force = data['force_update'] == true;
+        // Solo mostramos opciones de actualización si la versión instalada es MENOR que la del servidor
+        if (UpdateService.codigoVersionActual < latestCode && force) {
+          if (mounted) {
+            setState(() {
+              hayNuevaVersion = true;
+              urlDescarga = data['download_url']?.toString() ?? urlDescarga;
+            });
+            UpdateService.comprobarActualizacion(context);
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   // Evaluación de fortaleza de contraseña
@@ -272,67 +294,67 @@ class _AuthPageState extends State<AuthPage> {
                   Text('InfocusMind', style: hud(22, color: Colores.luna)),
                   const SizedBox(height: 10),
 
-                  // Banner elegante para descargar la versión más reciente
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colores.sol.withValues(alpha: 0.16),
-                          Colores.nocheClara,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colores.sol.withValues(alpha: 0.5)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.download_for_offline_rounded, color: Colores.sol, size: 24),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Versión v1.1.0 Disponible',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              Text(
-                                'Descarga la app oficial actualizada',
-                                style: TextStyle(
-                                  color: Colores.tenue,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
-                          ),
+                  // Solo se muestra si el servidor indica que hay una versión más nueva que la instalada
+                  if (hayNuevaVersion) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colores.sol.withValues(alpha: 0.16),
+                            Colores.nocheClara,
+                          ],
                         ),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colores.sol,
-                            foregroundColor: Colores.noche,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colores.sol.withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.download_for_offline_rounded, color: Colores.sol, size: 24),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Nueva Versión Disponible',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  'Descarga la actualización obligatoria',
+                                  style: TextStyle(
+                                    color: Colores.tenue,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          onPressed: () => UsageService.abrirUrl(
-                            'https://infocusmind-production.up.railway.app/descargar',
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colores.sol,
+                              foregroundColor: Colores.noche,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () => UsageService.abrirUrl(urlDescarga),
+                            icon: const Icon(Icons.download_rounded, size: 16),
+                            label: const Text(
+                              'Descargar',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                            ),
                           ),
-                          icon: const Icon(Icons.download_rounded, size: 16),
-                          label: const Text(
-                            'Descargar',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
+                    const SizedBox(height: 6),
+                  ],
 
                   // Selector diferenciado tipo Tabs
                   Container(
@@ -649,26 +671,37 @@ class _AuthPageState extends State<AuthPage> {
                     icon: const Icon(Icons.wifi_find_rounded, size: 15, color: Colores.tenue),
                     label: const Text('Comprobar conexión con servidor', style: TextStyle(color: Colores.tenue, fontSize: 12)),
                   ),
-                  const SizedBox(height: 8),
 
-                  // Botón directo para descargar actualización
-                  SizedBox(
-                    width: double.infinity,
-                    height: 42,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colores.sol,
-                        side: const BorderSide(color: Colores.sol, width: 1.2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  // Solo se muestra si el servidor indica que hay una versión más nueva que la instalada
+                  if (hayNuevaVersion) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 42,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colores.sol,
+                          side: const BorderSide(color: Colores.sol, width: 1.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () => UsageService.abrirUrl(urlDescarga),
+                        icon: const Icon(Icons.download_rounded, size: 18),
+                        label: const Text(
+                          'Descargar Actualización Obligatoria (APK)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
                       ),
-                      onPressed: () => UsageService.abrirUrl(
-                        'https://infocusmind-production.up.railway.app/descargar',
-                      ),
-                      icon: const Icon(Icons.download_rounded, size: 18),
-                      label: const Text(
-                        'Descargar InfocusMind v1.1.0 (APK)',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 18),
+                  // Texto poco visto y discreto con la versión oficial
+                  Text(
+                    'v${UpdateService.nombreVersionActual} • Build ${UpdateService.codigoVersionActual}',
+                    style: TextStyle(
+                      color: Colores.tenue.withValues(alpha: 0.35),
+                      fontSize: 11,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ],

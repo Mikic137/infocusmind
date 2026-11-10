@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_service.dart';
 import '../../core/modelos.dart';
@@ -534,18 +533,30 @@ class _HomePageState extends State<HomePage> {
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
-        children: tareas.isEmpty
-            ? const [
-                Padding(
-                  padding: EdgeInsets.all(40),
-                  child: Text(
-                    'Aún no tienes misiones.\nToca «Nueva misión» para crear una manualmente\no usa la pestaña «Ayudante» para dividirlas con IA.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 15, color: Colores.tenue),
-                  ),
-                )
-              ]
-            : [for (final t in tareas) tarjeta(t)],
+        children: [
+          if (tareas.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(40),
+              child: Text(
+                'Aún no tienes misiones.\nToca «Nueva misión» para crear una manualmente\no usa la pestaña «Ayudante» para dividirlas con IA.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, color: Colores.tenue),
+              ),
+            )
+          else
+            for (final t in tareas) tarjeta(t),
+          const SizedBox(height: 24),
+          Center(
+            child: Text(
+              'v${UpdateService.nombreVersionActual} • InfocusMind',
+              style: TextStyle(
+                color: Colores.tenue.withValues(alpha: 0.28),
+                fontSize: 11,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -561,33 +572,35 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
+        centerTitle: false,
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colores.cian, width: 1.5),
+                borderRadius: BorderRadius.circular(GestorTema.instancia.esMaduro ? 8 : 6),
+                border: Border.all(color: GestorTema.instancia.colorAcento, width: 1.5),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(GestorTema.instancia.esMaduro ? 6 : 4),
                 child: Image.asset(
                   'assets/images/logo.jpg',
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.psychology, size: 20, color: Colores.cian),
+                      Icon(Icons.psychology, size: 20, color: GestorTema.instancia.colorAcento),
                 ),
               ),
             ),
             const SizedBox(width: 10),
-            Text('InfocusMind', style: hud(13, color: Colores.luna)),
+            Text('InfocusMind', style: hud(12, color: Colores.luna)),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.palette_outlined, color: Colores.lila),
-            tooltip: 'Estilo Visual (Juvenil / Maduro)',
+            icon: Icon(Icons.palette_outlined, color: GestorTema.instancia.colorAcento),
+            tooltip: 'Estilo Visual (Juvenil / Maduro / Cálido)',
             onPressed: () => mostrarSelectorTema(context),
           ),
           IconButton(
@@ -599,37 +612,60 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.admin_panel_settings_rounded, color: Colores.sol),
-            tooltip: 'Panel de Administrador (Métricas)',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.home_rounded, color: Colores.cian),
-            tooltip: 'Pantalla de inicio (Launcher)',
-            onPressed: () {
-              setState(() => enModoLauncher = true);
-            },
-          ),
-          IconButton(
-            icon: Icon(
-              pestana == 4 ? Icons.shield_rounded : Icons.shield_outlined,
-              color: pestana == 4 ? Colores.sol : Colores.cian,
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded, color: Colores.luna),
+            tooltip: 'Más opciones',
+            color: Colores.nocheClara,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colores.borde),
             ),
-            tooltip: 'Control de distracciones',
-            onPressed: () {
-              setState(() => pestana = 4);
+            onSelected: (val) {
+              if (val == 'launcher') {
+                setState(() => enModoLauncher = true);
+              } else if (val == 'admin') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
+                );
+              } else if (val == 'logout') {
+                salir();
+              }
             },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'launcher',
+                child: Row(
+                  children: [
+                    Icon(Icons.home_rounded, color: Colores.cian, size: 20),
+                    SizedBox(width: 10),
+                    Text('Modo Launcher', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'admin',
+                child: Row(
+                  children: [
+                    Icon(Icons.admin_panel_settings_rounded, color: Colores.sol, size: 20),
+                    SizedBox(width: 10),
+                    Text('Panel Administrador', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout_rounded, color: Colores.coral, size: 20),
+                    SizedBox(width: 10),
+                    Text('Cerrar sesión', style: TextStyle(color: Colores.coral, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colores.tenue),
-            tooltip: 'Cerrar sesión',
-            onPressed: salir,
-          ),
+          const SizedBox(width: 6),
         ],
       ),
       body: Column(
@@ -655,7 +691,7 @@ class _HomePageState extends State<HomePage> {
                     Expanded(
                       child: Text(
                         'GUARDANDO TU MISIÓN...',
-                        style: GoogleFonts.pressStart2p(fontSize: 9, color: Colores.sol),
+                        style: hud(8, color: Colores.sol),
                       ),
                     ),
                   ],

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/destino.dart';
 import '../../core/tema.dart';
 
@@ -140,10 +139,9 @@ class _SplashPageState extends State<SplashPage>
               ),
               child: Text(
                 'ENFOQUE & PRODUCTIVIDAD',
-                style: GoogleFonts.pressStart2p(
-                  fontSize: 8,
+                style: hud(
+                  8,
                   color: Colores.sol,
-                  letterSpacing: 1.1,
                 ),
               ),
             ),
@@ -155,8 +153,8 @@ class _SplashPageState extends State<SplashPage>
               height: 20,
               child: Text(
                 'CARGANDO SISTEMA$puntosTexto',
-                style: GoogleFonts.pressStart2p(
-                  fontSize: 9,
+                style: hud(
+                  8,
                   color: Colores.tenue,
                 ),
               ),

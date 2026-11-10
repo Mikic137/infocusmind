@@ -44,8 +44,64 @@ class GestorTema extends ChangeNotifier {
   EstiloVisual _estilo = EstiloVisual.arcade;
   EstiloVisual get estilo => _estilo;
 
+  bool get esArcade => _estilo == EstiloVisual.arcade;
   bool get esMaduro => _estilo == EstiloVisual.maduro;
   bool get esCalido => _estilo == EstiloVisual.calido;
+
+  Color get colorFondo {
+    switch (_estilo) {
+      case EstiloVisual.maduro:
+        return const Color(0xFF0F172A);
+      case EstiloVisual.calido:
+        return const Color(0xFF1C1917);
+      case EstiloVisual.arcade:
+        return Colores.noche;
+    }
+  }
+
+  Color get colorSuperficie {
+    switch (_estilo) {
+      case EstiloVisual.maduro:
+        return const Color(0xFF1E293B);
+      case EstiloVisual.calido:
+        return const Color(0xFF292524);
+      case EstiloVisual.arcade:
+        return Colores.nocheClara;
+    }
+  }
+
+  Color get colorBorde {
+    switch (_estilo) {
+      case EstiloVisual.maduro:
+        return const Color(0xFF334155);
+      case EstiloVisual.calido:
+        return const Color(0xFF443831);
+      case EstiloVisual.arcade:
+        return Colores.borde;
+    }
+  }
+
+  Color get colorAcento {
+    switch (_estilo) {
+      case EstiloVisual.maduro:
+        return const Color(0xFF38BDF8); // Cian cielo profesional
+      case EstiloVisual.calido:
+        return const Color(0xFFF59E0B); // Ámbar miel cálido
+      case EstiloVisual.arcade:
+        return Colores.cian;
+    }
+  }
+
+  Color get colorSecundario {
+    switch (_estilo) {
+      case EstiloVisual.maduro:
+        return const Color(0xFF6366F1); // Indigo moderno
+      case EstiloVisual.calido:
+        return const Color(0xFFD97706); // Miel tostada
+      case EstiloVisual.arcade:
+        return Colores.violeta;
+    }
+  }
 
   void cambiarEstilo(EstiloVisual nuevo) {
     if (_estilo == nuevo) return;
@@ -65,23 +121,28 @@ class GestorTema extends ChangeNotifier {
   }
 }
 
-TextStyle hud(double size, {Color color = Colores.sol}) {
+TextStyle hud(double size, {Color? color, FontWeight? weight}) {
   if (GestorTema.instancia.esMaduro) {
-    return GoogleFonts.inter(
-      fontSize: size * 1.3,
-      color: color,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 0.3,
+    return GoogleFonts.plusJakartaSans(
+      fontSize: size * 1.35,
+      color: color ?? Colors.white,
+      fontWeight: weight ?? FontWeight.w800,
+      letterSpacing: -0.2,
     );
   }
   if (GestorTema.instancia.esCalido) {
-    return GoogleFonts.lora(
-      fontSize: size * 1.25,
-      color: color,
-      fontWeight: FontWeight.w700,
+    return GoogleFonts.outfit(
+      fontSize: size * 1.35,
+      color: color ?? const Color(0xFFFEF3C7),
+      fontWeight: weight ?? FontWeight.w700,
+      letterSpacing: 0.1,
     );
   }
-  return GoogleFonts.pressStart2p(fontSize: size, color: color, height: 1.4);
+  return GoogleFonts.pressStart2p(
+    fontSize: size,
+    color: color ?? Colores.sol,
+    height: 1.4,
+  );
 }
 
 OutlineInputBorder _borde(Color c) => OutlineInputBorder(
@@ -163,12 +224,12 @@ ThemeData temaJuego() {
   );
 }
 
-/// Botón arcade con bisel y sombra sólida que se hunde al tocarlo.
+/// Botón con diseño adaptable según el estilo seleccionado.
 class BotonJuego extends StatefulWidget {
   final String texto;
   final VoidCallback? onPressed;
-  final Color color;
-  final Color sombra;
+  final Color? color;
+  final Color? sombra;
   final Color colorTexto;
   final IconData? icono;
   final bool expandir;
@@ -176,8 +237,8 @@ class BotonJuego extends StatefulWidget {
     super.key,
     required this.texto,
     required this.onPressed,
-    this.color = Colores.violeta,
-    this.sombra = Colores.violetaSombra,
+    this.color,
+    this.sombra,
     this.colorTexto = Colors.white,
     this.icono,
     this.expandir = true,
@@ -192,11 +253,67 @@ class _BotonJuegoState extends State<BotonJuego> {
 
   @override
   Widget build(BuildContext context) {
+    final gestor = GestorTema.instancia;
     final activo = widget.onPressed != null;
-    final fondo = activo ? widget.color : Colores.borde;
-    final sombra = activo ? widget.sombra : Colores.sombraCarta;
+    final fondo = activo ? (widget.color ?? gestor.colorSecundario) : gestor.colorBorde;
+    final sombra = widget.sombra ?? (widget.color ?? gestor.colorSecundario);
     final texto = activo ? widget.colorTexto : Colores.tenue;
 
+    if (gestor.esMaduro) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: SizedBox(
+          width: widget.expandir ? double.infinity : null,
+          height: 48,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: fondo,
+              foregroundColor: texto,
+              elevation: activo ? 4 : 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: widget.onPressed,
+            icon: widget.icono != null ? Icon(widget.icono, size: 20) : const SizedBox.shrink(),
+            label: Text(
+              widget.texto,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (gestor.esCalido) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: SizedBox(
+          width: widget.expandir ? double.infinity : null,
+          height: 48,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: fondo,
+              foregroundColor: texto,
+              elevation: activo ? 3 : 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: widget.onPressed,
+            icon: widget.icono != null ? Icon(widget.icono, size: 20) : const SizedBox.shrink(),
+            label: Text(
+              widget.texto,
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Arcade (Retro Pixel con sombra sólida)
     return GestureDetector(
       onTapDown: activo ? (_) => setState(() => abajo = true) : null,
       onTapUp: activo ? (_) => setState(() => abajo = false) : null,
@@ -244,26 +361,68 @@ class _BotonJuegoState extends State<BotonJuego> {
   }
 }
 
-/// Tarjeta tipo ventana de diálogo retro con sombra sólida.
+/// Tarjeta adaptable según el tema (Retro pixel, Minimalista moderna o Cálida).
 class TarjetaJuego extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
-  final Color borde;
+  final Color? borde;
   const TarjetaJuego({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(14),
-    this.borde = Colores.borde,
+    this.borde,
   });
 
   @override
   Widget build(BuildContext context) {
+    final gestor = GestorTema.instancia;
+    final bordeColor = borde ?? gestor.colorBorde;
+
+    if (gestor.esMaduro) {
+      return Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: gestor.colorSuperficie,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: bordeColor, width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              offset: const Offset(0, 4),
+              blurRadius: 16,
+            ),
+          ],
+        ),
+        child: child,
+      );
+    }
+
+    if (gestor.esCalido) {
+      return Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: gestor.colorSuperficie,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: bordeColor, width: 1.4),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.20),
+              offset: const Offset(0, 3),
+              blurRadius: 12,
+            ),
+          ],
+        ),
+        child: child,
+      );
+    }
+
+    // Arcade (Retro Pixel con sombra sólida de 0 desenfoque)
     return Container(
       padding: padding,
       decoration: BoxDecoration(
         color: Colores.nocheClara,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: borde, width: 2),
+        border: Border.all(color: bordeColor, width: 2),
         boxShadow: const [
           BoxShadow(
             color: Colores.sombraCarta,
@@ -277,7 +436,7 @@ class TarjetaJuego extends StatelessWidget {
   }
 }
 
-/// Barra retro de XP / Salud estilo arcade con brillo neón y relleno visible garantizado.
+/// Barra de XP adaptable (Neón arcade, moderna difuminada o ámbar cálida).
 class BarraJuego extends StatelessWidget {
   final double valor;
   final Color color;
@@ -291,61 +450,211 @@ class BarraJuego extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gestor = GestorTema.instancia;
+
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: valor.clamp(0.0, 1.0).toDouble()),
       duration: const Duration(milliseconds: 600),
       curve: Curves.easeOutCubic,
-      builder: (context, v, _) => Container(
-        height: alto,
-        decoration: BoxDecoration(
-          color: Colores.noche,
-          borderRadius: BorderRadius.circular(3),
-          border: Border.all(color: Colores.borde, width: 1.5),
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final ancho = (constraints.maxWidth * v).clamp(0.0, constraints.maxWidth);
-            return Stack(
-              children: [
-                Positioned.fill(
-                  child: Container(color: Colores.noche),
-                ),
-                if (ancho > 0)
-                  Container(
-                    width: ancho,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: color.withValues(alpha: 0.65),
-                          blurRadius: 5,
-                          spreadRadius: 0.5,
-                          offset: const Offset(0, 0),
-                        ),
-                      ],
-                    ),
+      builder: (context, v, _) {
+        if (gestor.esMaduro || gestor.esCalido) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(alto / 2),
+            child: LinearProgressIndicator(
+              value: v,
+              minHeight: alto,
+              backgroundColor: gestor.colorBorde,
+              valueColor: AlwaysStoppedAnimation(color),
+            ),
+          );
+        }
+
+        return Container(
+          height: alto,
+          decoration: BoxDecoration(
+            color: Colores.noche,
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: Colores.borde, width: 1.5),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final ancho = (constraints.maxWidth * v).clamp(0.0, constraints.maxWidth);
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: Container(color: Colores.noche),
                   ),
-              ],
-            );
-          },
-        ),
-      ),
+                  if (ancho > 0)
+                    Container(
+                      width: ancho,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.65),
+                            blurRadius: 5,
+                            spreadRadius: 0.5,
+                            offset: const Offset(0, 0),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
 
-/// HUD del jugador con Nivel y Barra de XP retro.
+/// Nivel y Barra de Progreso totalmente transformable según el tema.
 class HudNivel extends StatelessWidget {
   final int xp;
   const HudNivel({super.key, required this.xp});
 
   @override
   Widget build(BuildContext context) {
+    final gestor = GestorTema.instancia;
     final nivel = xp ~/ 100 + 1;
     final actual = xp % 100;
 
+    if (gestor.esMaduro) {
+      return TarjetaJuego(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF38BDF8), Color(0xFF6366F1)],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Text(
+                '$nivel',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Nivel $nivel • Concentración',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '$actual / 100 XP',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  BarraJuego(valor: actual / 100, color: const Color(0xFF38BDF8), alto: 8),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (gestor.esCalido) {
+      return TarjetaJuego(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD97706),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFD97706).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Text(
+                '$nivel',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Nivel de Estudio $nivel',
+                        style: GoogleFonts.outfit(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFFEF3C7),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '$actual / 100 XP',
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFA8A29E),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  BarraJuego(valor: actual / 100, color: const Color(0xFFF59E0B), alto: 8),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Arcade (Retro Pixel)
     return TarjetaJuego(
       borde: Colores.bordeBrillante,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -406,13 +715,14 @@ ThemeData temaMaduro() {
   const bg = Color(0xFF0F172A); // Slate 900
   const surface = Color(0xFF1E293B); // Slate 800
   const border = Color(0xFF334155);
-  const accent = Color(0xFF6366F1); // Indigo
+  const accent = Color(0xFF38BDF8); // Sky blue
+  const primary = Color(0xFF6366F1); // Indigo
 
   final base = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: accent,
+      seedColor: primary,
       brightness: Brightness.dark,
       surface: surface,
     ),
@@ -421,7 +731,7 @@ ThemeData temaMaduro() {
   return base.copyWith(
     scaffoldBackgroundColor: bg,
     textTheme: base.textTheme.apply(
-      fontFamily: GoogleFonts.inter().fontFamily,
+      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
       bodyColor: const Color(0xFFF8FAFC),
       displayColor: const Color(0xFFF8FAFC),
     ),
@@ -429,18 +739,42 @@ ThemeData temaMaduro() {
       backgroundColor: bg,
       elevation: 0,
       scrolledUnderElevation: 0,
-      titleTextStyle: GoogleFonts.inter(
+      titleTextStyle: GoogleFonts.plusJakartaSans(
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: Colors.white,
       ),
     ),
+    cardTheme: CardThemeData(
+      color: surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: border, width: 1.2),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: border, width: 1.2),
+      ),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: surface,
+      indicatorColor: primary.withValues(alpha: 0.35),
+      labelTextStyle: WidgetStatePropertyAll(
+        GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 12),
+      ),
+      iconTheme: WidgetStateProperty.resolveWith((estados) => IconThemeData(
+        color: estados.contains(WidgetState.selected) ? accent : const Color(0xFF94A3B8),
+      )),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: surface,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: border)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: border)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: accent, width: 2)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: accent, width: 2)),
     ),
   );
 }
@@ -449,13 +783,14 @@ ThemeData temaCalido() {
   const bg = Color(0xFF1C1917); // Stone 900 cálido
   const surface = Color(0xFF292524);
   const border = Color(0xFF44403C);
-  const accent = Color(0xFFD97706); // Ámbar cálido
+  const accent = Color(0xFFF59E0B); // Ámbar cálido
+  const primary = Color(0xFFD97706); // Miel tostada
 
   final base = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: accent,
+      seedColor: primary,
       brightness: Brightness.dark,
       surface: surface,
     ),
@@ -464,7 +799,7 @@ ThemeData temaCalido() {
   return base.copyWith(
     scaffoldBackgroundColor: bg,
     textTheme: base.textTheme.apply(
-      fontFamily: GoogleFonts.sourceSans3().fontFamily,
+      fontFamily: GoogleFonts.outfit().fontFamily,
       bodyColor: const Color(0xFFFAFAF9),
       displayColor: const Color(0xFFFAFAF9),
     ),
@@ -472,18 +807,42 @@ ThemeData temaCalido() {
       backgroundColor: bg,
       elevation: 0,
       scrolledUnderElevation: 0,
-      titleTextStyle: GoogleFonts.sourceSans3(
+      titleTextStyle: GoogleFonts.outfit(
         fontSize: 19,
         fontWeight: FontWeight.w700,
         color: const Color(0xFFFEF3C7),
       ),
     ),
+    cardTheme: CardThemeData(
+      color: surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: border, width: 1.2),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: border, width: 1.2),
+      ),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: surface,
+      indicatorColor: primary.withValues(alpha: 0.35),
+      labelTextStyle: WidgetStatePropertyAll(
+        GoogleFonts.outfit(fontWeight: FontWeight.w600, color: const Color(0xFFFEF3C7), fontSize: 12),
+      ),
+      iconTheme: WidgetStateProperty.resolveWith((estados) => IconThemeData(
+        color: estados.contains(WidgetState.selected) ? accent : const Color(0xFFA8A29E),
+      )),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: surface,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: border)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: border)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: accent, width: 2)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: accent, width: 2)),
     ),
   );
 }

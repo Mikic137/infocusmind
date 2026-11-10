@@ -463,6 +463,9 @@ void main() async {
   // Landing page promocional
   router.get('/', (Request req) => handleLanding(req));
 
+  // Politica de privacidad
+  router.get('/privacy', (Request req) => handlePrivacy(req));
+
   // Descarga directa del APK de la aplicacion
   router.get('/download/InfocusMind.apk', (Request request) async {
     final apkUrl = env['APK_DOWNLOAD_URL'];

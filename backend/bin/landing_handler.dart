@@ -689,3 +689,77 @@ Future<Response> handleLanding(Request request) async {
   return Response(200,
       body: html, headers: {'content-type': 'text/html; charset=utf-8'});
 }
+
+Future<Response> handlePrivacy(Request request) async {
+  final html = '''<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidad — InfocusMind</title>
+  <style>
+    body {
+      background: #090c13;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      padding: 40px 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 { color: #6c5ce7; font-size: 2rem; margin-bottom: 8px; }
+    h2 { color: #00d2d3; font-size: 1.3rem; margin-top: 32px; margin-bottom: 12px; }
+    p, li { color: #94a3b8; font-size: 1rem; margin-bottom: 12px; }
+    ul { padding-left: 24px; margin-bottom: 16px; }
+    a { color: #6c5ce7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .card {
+      background: #111522;
+      border: 1px solid #232a3f;
+      border-radius: 12px;
+      padding: 32px;
+      margin-top: 24px;
+    }
+    .back { display: inline-block; margin-bottom: 20px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <a href="/" class="back">&larr; Volver a InfocusMind</a>
+  <div class="card">
+    <h1>Política de Privacidad</h1>
+    <p><strong>Última actualización:</strong> Noviembre 2026</p>
+    
+    <h2>1. Información que recopilamos</h2>
+    <p>InfocusMind recopila la información mínima necesaria para brindar el servicio:</p>
+    <ul>
+      <li><strong>Cuenta de usuario:</strong> Dirección de correo electrónico y contraseña encriptada (con hash bcrypt) para autenticación segura.</li>
+      <li><strong>Datos de estudio y productividad:</strong> Misiones, tareas, sesiones de enfoque completadas, tiempos de estudio y nivel de experiencia (XP) para el funcionamiento de las funciones de gamificación.</li>
+      <li><strong>Dictado por voz:</strong> Las grabaciones de voz se procesan temporalmente de manera local o mediante el proveedor de IA únicamente para transcribir el texto de las tareas, sin almacenarse en audio permanente.</li>
+    </ul>
+
+    <h2>2. Uso de la Información</h2>
+    <p>Los datos recopilados se utilizan exclusivamente para:</p>
+    <ul>
+      <li>Permitir el acceso y sincronización de tareas entre tus dispositivos.</li>
+      <li>Calibrar las estimaciones de tiempo y personalización del asistente de estudio.</li>
+      <li>Calcular estadísticas globales de uso anónimas para la mejora continua del servicio.</li>
+    </ul>
+
+    <h2>3. Almacenamiento y Seguridad</h2>
+    <p>Toda la comunicación entre la aplicación móvil y nuestros servidores se realiza mediante cifrado TLS/HTTPS. Las contraseñas se almacenan con algoritmos de hashing unidireccional (bcrypt).</p>
+
+    <h2>4. Permisos en el Dispositivo</h2>
+    <ul>
+      <li><strong>Micrófono:</strong> Utilizado únicamente cuando el usuario presiona el botón de dictado de tareas por voz (Zero UI).</li>
+      <li><strong>Modo Launcher:</strong> Utilizado voluntariamente para reemplazar la pantalla de inicio durante las sesiones de estudio y evitar distracciones.</li>
+    </ul>
+
+    <h2>5. Contacto</h2>
+    <p>Si tienes preguntas sobre esta política o deseas solicitar la eliminación de tu cuenta y datos, puedes contactarnos a través de nuestra web oficial o repositorio en GitHub:</p>
+    <p><a href="https://github.com/Mikic137/infocusmind">https://github.com/Mikic137/infocusmind</a></p>
+  </div>
+</body>
+</html>''';
+
+  return Response(200, body: html, headers: {'content-type': 'text/html; charset=utf-8'});
+}

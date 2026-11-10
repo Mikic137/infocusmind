@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
@@ -8,6 +8,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart';
 import 'metrics_handler.dart';
+import 'landing_handler.dart';
 
 final env = Platform.environment;
 
@@ -458,6 +459,29 @@ Future<Ajuste> ajusteDe(Connection conn, int userId) async {
 
 void main() async {
   final router = Router();
+
+  // Landing page promocional
+  router.get('/', (Request req) => handleLanding(req));
+
+  // Descarga directa del APK de la aplicacion
+  router.get('/download/InfocusMind.apk', (Request request) async {
+    final apkUrl = env['APK_DOWNLOAD_URL'];
+    if (apkUrl != null && apkUrl.trim().isNotEmpty) {
+      return Response.found(Uri.parse(apkUrl.trim()));
+    }
+    final localFile = File('public/InfocusMind.apk');
+    if (await localFile.exists()) {
+      return Response.ok(
+        localFile.openRead(),
+        headers: {
+          'content-type': 'application/vnd.android.package-archive',
+          'content-disposition': 'attachment; filename="InfocusMind.apk"',
+          'content-length': (await localFile.length()).toString(),
+        },
+      );
+    }
+    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases'));
+  });
 
   router.get('/admin/metrics', (Request req) => handleMetrics(req, abrirConexion));
 

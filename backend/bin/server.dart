@@ -467,11 +467,15 @@ void main() async {
   router.get('/privacy', (Request req) => handlePrivacy(req));
 
   // Descarga directa del APK de la aplicacion
-  router.get('/download/InfocusMind.apk', (Request request) async {
+  Response _redirigirDescargaApk() {
     final apkUrl = env['APK_DOWNLOAD_URL'];
     if (apkUrl != null && apkUrl.trim().isNotEmpty) {
       return Response.found(Uri.parse(apkUrl.trim()));
     }
+    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.0/InfocusMind.apk'));
+  }
+
+  router.get('/download/InfocusMind.apk', (Request request) async {
     final localFile = File('public/InfocusMind.apk');
     if (await localFile.exists()) {
       return Response.ok(
@@ -483,8 +487,11 @@ void main() async {
         },
       );
     }
-    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.0/InfocusMind.apk'));
+    return _redirigirDescargaApk();
   });
+
+  router.get('/descargar', (Request request) => _redirigirDescargaApk());
+  router.get('/apk', (Request request) => _redirigirDescargaApk());
 
   // Endpoint de comprobacion y forzado de actualizacion
   router.get('/app/version', (Request request) async {
@@ -1455,6 +1462,8 @@ void main() async {
         p == 'health' ||
         p.startsWith('admin') ||
         p.startsWith('download') ||
+        p.startsWith('descargar') ||
+        p.startsWith('apk') ||
         p.startsWith('privacy') ||
         p.startsWith('app/version');
 

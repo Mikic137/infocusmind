@@ -9,6 +9,7 @@ import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart';
 import 'metrics_handler.dart';
 import 'landing_handler.dart';
+import 'seed_handler.dart';
 
 final env = Platform.environment;
 
@@ -524,6 +525,8 @@ void main() async {
   });
 
   router.get('/admin/metrics', (Request req) => handleMetrics(req, abrirConexion));
+  router.get('/admin/seed-students', (Request req) => handleSeedStudents(req, abrirConexion));
+  router.post('/admin/seed-students', (Request req) => handleSeedStudents(req, abrirConexion));
 
   router.get('/health', (Request request) async {
     try {

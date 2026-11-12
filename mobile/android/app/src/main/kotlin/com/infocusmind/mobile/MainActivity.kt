@@ -121,6 +121,37 @@ class MainActivity : FlutterActivity() {
                         result.error("ERROR", e.message, null)
                     }
                 }
+                "getCacheDir" -> {
+                    result.success(cacheDir.absolutePath)
+                }
+                "installApk" -> {
+                    try {
+                        val filePath = call.argument<String>("filePath")
+                        if (filePath != null) {
+                            val file = java.io.File(filePath)
+                            if (file.exists()) {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                                        this@MainActivity,
+                                        "$packageName.fileprovider",
+                                        file
+                                    )
+                                    setDataAndType(uri, "application/vnd.android.package-archive")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(intent)
+                                result.success(true)
+                            } else {
+                                result.error("FILE_NOT_FOUND", "Archivo no encontrado: $filePath", null)
+                            }
+                        } else {
+                            result.error("ARG_NULL", "Ruta de archivo vacía", null)
+                        }
+                    } catch (e: Exception) {
+                        result.error("INSTALL_ERROR", e.message, null)
+                    }
+                }
                 "launchApp" -> {
                     val pkg = call.argument<String>("package") ?: ""
                     val launchIntent = packageManager.getLaunchIntentForPackage(pkg)

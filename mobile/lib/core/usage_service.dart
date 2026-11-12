@@ -374,4 +374,25 @@ class UsageService {
       return false;
     }
   }
+
+  /// Obtiene la ruta del directorio de caché interno de la app para descargar archivos temporales.
+  static Future<String?> obtenerRutaCache() async {
+    try {
+      return await _canal.invokeMethod<String>('getCacheDir');
+    } on PlatformException catch (e) {
+      debugPrint('Error al obtener directorio caché: $e');
+      return null;
+    }
+  }
+
+  /// Lanza el instalador nativo del sistema Android para actualizar la aplicación in-app.
+  static Future<bool> instalarApk(String filePath) async {
+    try {
+      final res = await _canal.invokeMethod<bool>('installApk', {'filePath': filePath});
+      return res ?? false;
+    } on PlatformException catch (e) {
+      debugPrint('Error al invocar instalación de APK: $e');
+      return false;
+    }
+  }
 }

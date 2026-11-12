@@ -21,7 +21,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   List<Tarea> tareas = [];
   bool cargando = true;
   bool creando = false;
@@ -29,10 +29,13 @@ class _HomePageState extends State<HomePage> {
   int pestana = 0;
   bool enModoLauncher = false;
   bool _tutorialCompletado = true;
+  bool _mostrarCompletadas = false;
+  final Set<int> _completadasExpandidas = {};
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     cargar();
 
     AuthService.esTutorialCompletado().then((listo) {
@@ -74,8 +77,16 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     UsageService.onHomePressed = null;
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      cargar();
+    }
   }
 
   void aviso(String texto) {
@@ -147,6 +158,9 @@ class _HomePageState extends State<HomePage> {
     try {
       await dio.patch('/tasks/${tarea.id}/steps/${paso.id}',
           data: {'done': valor});
+      if (tarea.pasos.every((p) => p.hecho)) {
+        await cargar();
+      }
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => paso.hecho = !valor);
@@ -387,12 +401,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget tarjeta(Tarea t) {
+  Widget tarjeta(Tarea t, {bool minimizada = false}) {
     final progreso = t.pasos.isEmpty ? 0.0 : t.hechos / t.pasos.length;
     final porcentaje = (progreso * 100).round();
+    final expandida = !minimizada || _completadasExpandidas.contains(t.id);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 12),
       child: TarjetaJuego(
         borde: t.completa
             ? Colores.menta
@@ -424,13 +439,34 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   child: Text(
                     t.titulo,
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: 17,
                       fontWeight: FontWeight.w800,
                       height: 1.15,
+                      color: t.completa ? Colores.luna.withValues(alpha: 0.85) : Colores.luna,
+                      decoration: t.completa ? TextDecoration.lineThrough : null,
                     ),
                   ),
                 ),
+                if (minimizada) ...[
+                  IconButton(
+                    icon: Icon(
+                      expandida ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                      color: Colores.menta,
+                      size: 22,
+                    ),
+                    tooltip: expandida ? 'Plegar pasos' : 'Ver pasos',
+                    onPressed: () {
+                      setState(() {
+                        if (_completadasExpandidas.contains(t.id)) {
+                          _completadasExpandidas.remove(t.id);
+                        } else {
+                          _completadasExpandidas.add(t.id);
+                        }
+                      });
+                    },
+                  ),
+                ],
                 IconButton(
                   icon: const Icon(Icons.edit_outlined,
                       color: Colores.cian, size: 20),
@@ -445,7 +481,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             // Barra de progreso y contador
             Row(
               children: [
@@ -453,23 +489,29 @@ class _HomePageState extends State<HomePage> {
                   child: BarraJuego(
                     valor: progreso,
                     color: t.completa ? Colores.menta : Colores.cian,
-                    alto: 8,
+                    alto: 6,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Text(
                   '$porcentaje%',
-                  style: hud(9, color: t.completa ? Colores.menta : Colores.sol),
+                  style: hud(8, color: t.completa ? Colores.menta : Colores.sol),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    '${t.hechos} de ${t.pasos.length} pasos completados (${t.minutosTotales} min foco)',
-                    style: const TextStyle(color: Colores.tenue, fontSize: 13),
+                    t.completa
+                        ? '¡Misión cumplida! ${t.hechos} de ${t.pasos.length} pasos (${t.minutosTotales} min foco)'
+                        : '${t.hechos} de ${t.pasos.length} pasos completados (${t.minutosTotales} min foco)',
+                    style: TextStyle(
+                      color: t.completa ? Colores.menta : Colores.tenue,
+                      fontSize: 12,
+                      fontWeight: t.completa ? FontWeight.w600 : FontWeight.normal,
+                    ),
                   ),
                 ),
                 if (t.fechaProgramada != null && t.fechaProgramada!.isNotEmpty) ...[
@@ -500,10 +542,12 @@ class _HomePageState extends State<HomePage> {
                 ],
               ],
             ),
-            const SizedBox(height: 10),
-            const Divider(color: Colores.borde, height: 1),
-            const SizedBox(height: 8),
-            for (final p in t.pasos) fila(t, p),
+            if (expandida) ...[
+              const SizedBox(height: 8),
+              const Divider(color: Colores.borde, height: 1),
+              const SizedBox(height: 6),
+              for (final p in t.pasos) fila(t, p),
+            ],
           ],
         ),
       ),
@@ -550,6 +594,10 @@ class _HomePageState extends State<HomePage> {
         onIrAMisiones: () => setState(() => pestana = 0),
       );
     }
+
+    final activas = tareas.where((t) => !t.completa).toList();
+    final completadas = tareas.where((t) => t.completa).toList();
+
     return RefreshIndicator(
       onRefresh: cargar,
       child: ListView(
@@ -565,8 +613,81 @@ class _HomePageState extends State<HomePage> {
                 style: TextStyle(fontSize: 15, color: Colores.tenue),
               ),
             )
-          else
-            for (final t in tareas) tarjeta(t),
+          else ...[
+            if (activas.isEmpty && completadas.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colores.menta.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colores.menta, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.emoji_events_rounded, color: Colores.sol, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('¡MISIÓN CUMPLIDA!', style: hud(10, color: Colores.menta)),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Has completado todas tus misiones pendientes. Crea una nueva misión arriba o revisa las completadas abajo.',
+                            style: TextStyle(color: Colores.luna, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            for (final t in activas) tarjeta(t),
+            if (completadas.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => setState(() => _mostrarCompletadas = !_mostrarCompletadas),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colores.nocheClara,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colores.menta.withValues(alpha: 0.5),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded, color: Colores.menta, size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        'COMPLETADAS (${completadas.length})',
+                        style: hud(9, color: Colores.menta),
+                      ),
+                      const Spacer(),
+                      Text(
+                        _mostrarCompletadas ? 'Ocultar' : 'Ver completadas',
+                        style: const TextStyle(color: Colores.tenue, fontSize: 12),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _mostrarCompletadas ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                        color: Colores.menta,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_mostrarCompletadas) ...[
+                const SizedBox(height: 12),
+                for (final t in completadas) tarjeta(t, minimizada: true),
+              ],
+            ],
+          ],
           const SizedBox(height: 24),
           Center(
             child: Text(
@@ -587,7 +708,10 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     if (enModoLauncher) {
       return LauncherScreen(
-        onAbrirAppCompleta: () => setState(() => enModoLauncher = false),
+        onAbrirAppCompleta: () {
+          setState(() => enModoLauncher = false);
+          cargar();
+        },
       );
     }
 

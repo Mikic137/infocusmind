@@ -473,22 +473,26 @@ void main() async {
     if (apkUrl != null && apkUrl.trim().isNotEmpty) {
       return Response.found(Uri.parse(apkUrl.trim()));
     }
-    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.2/InfocusMind_v1.1.2.apk'));
+    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.3/InfocusMind_v1.1.3.apk'));
   }
 
-  router.get('/download/InfocusMind_v1.1.2.apk', (Request request) async {
-    final localFile = File('public/InfocusMind_v1.1.2.apk');
+  router.get('/download/InfocusMind_v1.1.3.apk', (Request request) async {
+    final localFile = File('public/InfocusMind_v1.1.3.apk');
     if (await localFile.exists()) {
       return Response.ok(
         localFile.openRead(),
         headers: {
           'content-type': 'application/vnd.android.package-archive',
-          'content-disposition': 'attachment; filename="InfocusMind_v1.1.2.apk"',
+          'content-disposition': 'attachment; filename="InfocusMind_v1.1.3.apk"',
           'content-length': (await localFile.length()).toString(),
         },
       );
     }
     return _redirigirDescargaApk();
+  });
+
+  router.get('/download/InfocusMind_v1.1.2.apk', (Request request) async {
+    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.2/InfocusMind_v1.1.2.apk'));
   });
 
   router.get('/download/InfocusMind.apk', (Request request) async {
@@ -512,15 +516,15 @@ void main() async {
   // Endpoint de comprobacion y forzado de actualizacion
   router.get('/app/version', (Request request) async {
     return json(200, {
-      'latest_version': '1.1.2',
-      'latest_version_code': 3,
+      'latest_version': '1.1.3',
+      'latest_version_code': 4,
       'min_required_version_code': 3,
       'force_update': true,
-      'title': 'Actualización Requerida a InfocusMind v1.1.2',
+      'title': 'Actualización Requerida a InfocusMind v1.1.3',
       'message':
-          'Hemos lanzado InfocusMind v1.1.2 con tutorial interactivo guiado paso a paso, mayor seguridad, optimizaciones de interfaz y descarga identificada.',
+          'Hemos lanzado InfocusMind v1.1.3 con actualizador in-app directo sin ir al navegador, sección de misiones completadas plegable y sincronización instantánea con el modo Launcher.',
       'download_url':
-          'https://infocusmind-production.up.railway.app/download/InfocusMind_v1.1.2.apk',
+          'https://infocusmind-production.up.railway.app/download/InfocusMind_v1.1.3.apk',
     });
   });
 

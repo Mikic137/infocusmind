@@ -185,7 +185,17 @@ class _FocusPageState extends State<FocusPage> {
     if (seguro != true) return;
     await UsageService.cancelarNotificacion();
     try {
-      await dio.post('/sessions/${widget.sesionId}/cancel');
+      final appsUsadas = await UsageService.obtenerUso(inicio, DateTime.now());
+      final distractorasConfig = (await UsageService.obtenerAppsDistractoras()).toSet();
+      final distracciones = appsUsadas.where((a) =>
+          distractorasConfig.isEmpty || distractorasConfig.contains(a.package)).toList();
+      await UsageService.registrarDistraccionLocal(distracciones);
+      await dio.post('/sessions/${widget.sesionId}/cancel', data: {
+        'distractions': [
+          for (final d in distracciones)
+            {'package': d.package, 'name': d.name, 'seconds': d.seconds}
+        ],
+      });
     } on DioException catch (_) {}
     if (!mounted) return;
     Navigator.pop(context, false);

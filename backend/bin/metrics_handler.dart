@@ -104,15 +104,39 @@ Future<Response> handleMetrics(
         SELECT app_name, COALESCE(SUM(seconds), 0) as total_seg, COUNT(*) as veces
         FROM distraction_logs
         GROUP BY app_name
-        ORDER BY total_seg DESC
-        LIMIT 10
+        ORDER BY total_seg DESC, veces DESC
+        LIMIT 50
       ''');
       final topDistractions = rDistractions.map((row) {
         final seg = (row[1] as num).toInt();
+        final displayTime = seg < 60 ? '$seg seg' : '${(seg / 60).round()} min';
         return {
           'app': row[0].toString(),
+          'seconds': seg,
           'minutes': (seg / 60).round(),
+          'display_time': displayTime,
           'count': (row[2] as num).toInt(),
+        };
+      }).toList();
+
+      final rRecentLogs = await conn.execute('''
+        SELECT d.id, u.email, d.app_name, d.seconds, d.created_at
+        FROM distraction_logs d
+        JOIN users u ON u.id = d.user_id
+        ORDER BY d.created_at DESC
+        LIMIT 25
+      ''');
+      final recentLogs = rRecentLogs.map((row) {
+        final seg = (row[3] as num).toInt();
+        final displayTime = seg < 60 ? '$seg seg' : '${(seg / 60).round()} min';
+        final rawDt = row[4] as DateTime;
+        final ecuadorDt = rawDt.toUtc().subtract(const Duration(hours: 5));
+        return {
+          'id': row[0],
+          'email': row[1].toString(),
+          'app': row[2].toString(),
+          'display_time': displayTime,
+          'created_at': ecuadorDt.toString().substring(0, 19),
         };
       }).toList();
 
@@ -133,6 +157,7 @@ Future<Response> handleMetrics(
               'total_study_hours': totalHours,
               'recent_users': recentUsers,
               'top_distractions': topDistractions,
+              'recent_distraction_logs': recentLogs,
               'timestamp': DateTime.now().toUtc().toIso8601String(),
             }),
             headers: {'content-type': 'application/json'});
@@ -436,21 +461,57 @@ Future<Response> handleMetrics(
       </div>
 
       <div class="table-card">
-        <h3>Top Aplicaciones Distractoras</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin-bottom:0;">Aplicaciones Distractoras (${topDistractions.length} detectadas)</h3>
+          <span style="font-size:11px; color:var(--muted)">Historial consolidado</span>
+        </div>
+        <div style="max-height: 480px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Aplicación</th>
+                <th>Veces detectada</th>
+                <th>Tiempo total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${topDistractions.isEmpty ? '<tr><td colspan="3" style="text-align:center; color:var(--muted)">Aún no se han registrado distracciones</td></tr>' : topDistractions.map((d) => '''
+                <tr>
+                  <td><strong>${d['app']}</strong></td>
+                  <td>${d['count']} veces</td>
+                  <td><span class="badge" style="background:rgba(255,107,107,0.18); color:var(--coral)">${d['display_time']}</span></td>
+                </tr>
+              ''').join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-card" style="margin-top:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin-bottom:0;">Últimos Eventos de Distracción en Vivo (${recentLogs.length} recientes)</h3>
+        <span style="font-size:11px; color:var(--muted)">Hora Ecuador (UTC-5)</span>
+      </div>
+      <div style="max-height: 380px; overflow-y: auto;">
         <table>
           <thead>
             <tr>
+              <th>ID</th>
+              <th>Usuario</th>
               <th>Aplicación</th>
-              <th>Veces detectada</th>
-              <th>Tiempo total</th>
+              <th>Tiempo Distraído</th>
+              <th>Fecha y Hora</th>
             </tr>
           </thead>
           <tbody>
-            ${topDistractions.isEmpty ? '<tr><td colspan="3" style="text-align:center; color:var(--muted)">Aún no se han registrado distracciones</td></tr>' : topDistractions.map((d) => '''
+            ${recentLogs.isEmpty ? '<tr><td colspan="5" style="text-align:center; color:var(--muted)">No hay registros recientes</td></tr>' : recentLogs.map((l) => '''
               <tr>
-                <td><strong>${d['app']}</strong></td>
-                <td>${d['count']} veces</td>
-                <td><span class="badge" style="background:rgba(255,107,107,0.18); color:var(--coral)">${d['minutes']} min</span></td>
+                <td><span class="badge">#${l['id']}</span></td>
+                <td><strong>${l['email']}</strong></td>
+                <td><span class="badge" style="background:rgba(254,211,48,0.18); color:var(--sol)">${l['app']}</span></td>
+                <td><span class="badge" style="background:rgba(255,107,107,0.18); color:var(--coral)">${l['display_time']}</span></td>
+                <td style="color:var(--muted); font-size:12px;">${l['created_at']}</td>
               </tr>
             ''').join('')}
           </tbody>

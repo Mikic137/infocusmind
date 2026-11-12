@@ -1318,6 +1318,32 @@ void main() async {
           ),
           parameters: {'id': sid, 'u': userId},
         );
+
+        final cuerpo = await request.readAsString();
+        final data = cuerpo.isEmpty ? {} : jsonDecode(cuerpo);
+        final crudosDistracciones = (data['distractions'] as List?) ?? [];
+        for (final d in crudosDistracciones) {
+          if (d is Map) {
+            final pkg = (d['package'] ?? '').toString().trim();
+            final nom = (d['name'] ?? pkg).toString().trim();
+            final segs = (d['seconds'] is num ? (d['seconds'] as num).round() : 0).clamp(0, 86400).toInt();
+            if (pkg.isNotEmpty && segs > 0) {
+              await conn.execute(
+                Sql.named(
+                  'INSERT INTO distraction_logs (user_id, session_id, package_name, app_name, seconds) '
+                  'VALUES (@u, @sid, @pkg, @nom, @segs)',
+                ),
+                parameters: {
+                  'u': userId,
+                  'sid': sid,
+                  'pkg': pkg,
+                  'nom': nom.length > 100 ? nom.substring(0, 100) : nom,
+                  'segs': segs,
+                },
+              );
+            }
+          }
+        }
         return json(200, {'ok': true});
       } finally {
         await conn.close();

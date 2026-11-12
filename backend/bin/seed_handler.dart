@@ -427,3 +427,117 @@ Future<Response> handleSeedStudents(
         headers: {'content-type': 'application/json'});
   }
 }
+
+Future<Response> handleAdjustDistractions(
+    Request request, Future<Connection> Function() abrirConexion) async {
+  final env = Platform.environment;
+  final queryKey = request.url.queryParameters['key'];
+  final headerKey = request.headers['x-admin-key'];
+  final expectedKey = env['ADMIN_KEY'] ?? 'infocus2026';
+
+  if (queryKey != expectedKey && headerKey != expectedKey) {
+    return Response(401,
+        body: jsonEncode({'error': 'No autorizado. Se requiere admin key válida'}),
+        headers: {'content-type': 'application/json'});
+  }
+
+  try {
+    final conn = await abrirConexion();
+    try {
+      // 1. Ajustar TikTok a tiempos sutiles (micro-distracciones de 2 a 4 minutos)
+      final rTikTok = await conn.execute(
+        "SELECT id FROM distraction_logs WHERE app_name = 'TikTok' ORDER BY id"
+      );
+      if (rTikTok.length > 8) {
+        final idsToDelete = rTikTok.skip(8).map((r) => r[0] as int).toList();
+        for (final id in idsToDelete) {
+          await conn.execute(
+            Sql.named('DELETE FROM distraction_logs WHERE id = @id'),
+            parameters: {'id': id},
+          );
+        }
+      }
+      final remainingTikTok = await conn.execute(
+        "SELECT id FROM distraction_logs WHERE app_name = 'TikTok' ORDER BY id"
+      );
+      // Suma total: ~1910 seg = ~32 minutos distribuidos en 8 registros
+      final tiemposTikTok = [210, 260, 190, 240, 270, 220, 250, 270];
+      for (var i = 0; i < remainingTikTok.length; i++) {
+        final id = remainingTikTok[i][0] as int;
+        final seg = tiemposTikTok[i % tiemposTikTok.length];
+        await conn.execute(
+          Sql.named('UPDATE distraction_logs SET seconds = @s WHERE id = @id'),
+          parameters: {'s': seg, 'id': id},
+        );
+      }
+
+      // 2. Ajustar Instagram a tiempos naturales (~21 minutos distribuidos en 6 registros)
+      final rInsta = await conn.execute(
+        "SELECT id FROM distraction_logs WHERE app_name = 'Instagram' ORDER BY id"
+      );
+      if (rInsta.length > 6) {
+        final idsToDelete = rInsta.skip(6).map((r) => r[0] as int).toList();
+        for (final id in idsToDelete) {
+          await conn.execute(
+            Sql.named('DELETE FROM distraction_logs WHERE id = @id'),
+            parameters: {'id': id},
+          );
+        }
+      }
+      final remainingInsta = await conn.execute(
+        "SELECT id FROM distraction_logs WHERE app_name = 'Instagram' ORDER BY id"
+      );
+      final tiemposInsta = [190, 230, 210, 240, 180, 220];
+      for (var i = 0; i < remainingInsta.length; i++) {
+        final id = remainingInsta[i][0] as int;
+        final seg = tiemposInsta[i % tiemposInsta.length];
+        await conn.execute(
+          Sql.named('UPDATE distraction_logs SET seconds = @s WHERE id = @id'),
+          parameters: {'s': seg, 'id': id},
+        );
+      }
+
+      // 3. Ajustar WhatsApp a micro-consultas (~10 minutos)
+      final rWa = await conn.execute(
+        "SELECT id FROM distraction_logs WHERE app_name = 'WhatsApp' ORDER BY id"
+      );
+      final tiemposWa = [120, 160, 140, 150];
+      for (var i = 0; i < rWa.length; i++) {
+        final id = rWa[i][0] as int;
+        final seg = tiemposWa[i % tiemposWa.length];
+        await conn.execute(
+          Sql.named('UPDATE distraction_logs SET seconds = @s WHERE id = @id'),
+          parameters: {'s': seg, 'id': id},
+        );
+      }
+
+      // 4. Ajustar YouTube (~14 minutos)
+      final rYt = await conn.execute(
+        "SELECT id FROM distraction_logs WHERE app_name = 'YouTube' ORDER BY id"
+      );
+      final tiemposYt = [260, 310, 270];
+      for (var i = 0; i < rYt.length; i++) {
+        final id = rYt[i][0] as int;
+        final seg = tiemposYt[i % tiemposYt.length];
+        await conn.execute(
+          Sql.named('UPDATE distraction_logs SET seconds = @s WHERE id = @id'),
+          parameters: {'s': seg, 'id': id},
+        );
+      }
+
+      return Response(200,
+          body: jsonEncode({
+            'success': true,
+            'mensaje': 'Tiempos de distracciones calibrados de forma sutil y realista.',
+          }),
+          headers: {'content-type': 'application/json'});
+    } finally {
+      await conn.close();
+    }
+  } catch (e, st) {
+    print('Error en handleAdjustDistractions: $e\n$st');
+    return Response(500,
+        body: jsonEncode({'error': 'Error ajustando distracciones: $e'}),
+        headers: {'content-type': 'application/json'});
+  }
+}

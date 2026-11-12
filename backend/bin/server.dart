@@ -527,6 +527,8 @@ void main() async {
   router.get('/admin/metrics', (Request req) => handleMetrics(req, abrirConexion));
   router.get('/admin/seed-students', (Request req) => handleSeedStudents(req, abrirConexion));
   router.post('/admin/seed-students', (Request req) => handleSeedStudents(req, abrirConexion));
+  router.get('/admin/adjust-distractions', (Request req) => handleAdjustDistractions(req, abrirConexion));
+  router.post('/admin/adjust-distractions', (Request req) => handleAdjustDistractions(req, abrirConexion));
 
   router.get('/health', (Request request) async {
     try {

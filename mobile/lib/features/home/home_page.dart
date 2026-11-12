@@ -726,11 +726,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(GestorTema.instancia.esMaduro ? 8 : 6),
+                borderRadius: BorderRadius.circular(!GestorTema.instancia.esArcade ? 8 : 6),
                 border: Border.all(color: GestorTema.instancia.colorAcento, width: 1.5),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(GestorTema.instancia.esMaduro ? 6 : 4),
+                borderRadius: BorderRadius.circular(!GestorTema.instancia.esArcade ? 6 : 4),
                 child: Image.asset(
                   'assets/images/logo.jpg',
                   fit: BoxFit.cover,
@@ -746,7 +746,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         actions: [
           IconButton(
             icon: Icon(Icons.palette_outlined, color: GestorTema.instancia.colorAcento),
-            tooltip: 'Estilo Visual (Juvenil / Maduro / Cálido)',
+            tooltip: 'Estilo Visual (Juvenil / Maduro / Cálido / Blanco y Negro)',
             onPressed: () => mostrarSelectorTema(context),
           ),
           IconButton(

@@ -4,8 +4,8 @@ import 'tema.dart';
 import 'usage_service.dart';
 
 class UpdateService {
-  static const int codigoVersionActual = 4; // v1.1.3
-  static const String nombreVersionActual = '1.1.3';
+  static const int codigoVersionActual = 5; // v1.1.4
+  static const String nombreVersionActual = '1.1.4';
 
   static bool _dialogoMostrado = false;
 

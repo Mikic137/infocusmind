@@ -82,12 +82,12 @@ class _TutorialGuidePageState extends State<TutorialGuidePage> {
       'paso': 6,
       'etiqueta': 'Estilos',
       'titulo': '6. Personaliza tu Estilo de Estudio',
-      'subtitulo': 'Juvenil Arcade, Maduro Minimalista o Cálido',
+      'subtitulo': 'Juvenil Arcade, Maduro, Cálido o Blanco y Negro',
       'icono': Icons.palette_rounded,
       'color': Colores.lila,
       'descripcion':
-          'Toca el icono de la paleta en la barra superior en cualquier momento para cambiar entre el tema Arcade (pixel gamer), Maduro (sin píxeles, ejecutivo) o Biblioteca Cálida.',
-      'tip': '🎨 Consejo: El tema Maduro transforma la app con tipografía limpia y profesional.',
+          'Toca el icono de la paleta en la barra superior en cualquier momento para cambiar entre el tema Arcade (pixel gamer), Maduro (ejecutivo), Biblioteca Cálida o Blanco y Negro (neutral).',
+      'tip': '🎨 Consejo: Los estilos Maduro y Blanco y Negro ofrecen un diseño minimalista sin distracciones.',
     },
   ];
 

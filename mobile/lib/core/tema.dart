@@ -35,6 +35,7 @@ enum EstiloVisual {
   arcade, // Juvenil Arcade HUD / Pixel Art
   maduro, // Minimalista Maduro / Ejecutivo
   calido, // Biblioteca Cálida & Café
+  monocromo, // Blanco y Negro / Neutral Minimalista
 }
 
 class GestorTema extends ChangeNotifier {
@@ -47,6 +48,7 @@ class GestorTema extends ChangeNotifier {
   bool get esArcade => _estilo == EstiloVisual.arcade;
   bool get esMaduro => _estilo == EstiloVisual.maduro;
   bool get esCalido => _estilo == EstiloVisual.calido;
+  bool get esMonocromo => _estilo == EstiloVisual.monocromo;
 
   Color get colorFondo {
     switch (_estilo) {
@@ -54,6 +56,8 @@ class GestorTema extends ChangeNotifier {
         return const Color(0xFF0F172A);
       case EstiloVisual.calido:
         return const Color(0xFF1C1917);
+      case EstiloVisual.monocromo:
+        return const Color(0xFF101010);
       case EstiloVisual.arcade:
         return Colores.noche;
     }
@@ -65,6 +69,8 @@ class GestorTema extends ChangeNotifier {
         return const Color(0xFF1E293B);
       case EstiloVisual.calido:
         return const Color(0xFF292524);
+      case EstiloVisual.monocromo:
+        return const Color(0xFF1B1B1B);
       case EstiloVisual.arcade:
         return Colores.nocheClara;
     }
@@ -76,6 +82,8 @@ class GestorTema extends ChangeNotifier {
         return const Color(0xFF334155);
       case EstiloVisual.calido:
         return const Color(0xFF443831);
+      case EstiloVisual.monocromo:
+        return const Color(0xFF383838);
       case EstiloVisual.arcade:
         return Colores.borde;
     }
@@ -87,6 +95,8 @@ class GestorTema extends ChangeNotifier {
         return const Color(0xFF38BDF8); // Cian cielo profesional
       case EstiloVisual.calido:
         return const Color(0xFFF59E0B); // Ámbar miel cálido
+      case EstiloVisual.monocromo:
+        return Colors.white; // Blanco puro minimalista
       case EstiloVisual.arcade:
         return Colores.cian;
     }
@@ -98,6 +108,8 @@ class GestorTema extends ChangeNotifier {
         return const Color(0xFF6366F1); // Indigo moderno
       case EstiloVisual.calido:
         return const Color(0xFFD97706); // Miel tostada
+      case EstiloVisual.monocromo:
+        return const Color(0xFFE5E5E5); // Blanco plata neutro
       case EstiloVisual.arcade:
         return Colores.violeta;
     }
@@ -115,6 +127,8 @@ class GestorTema extends ChangeNotifier {
         return temaMaduro();
       case EstiloVisual.calido:
         return temaCalido();
+      case EstiloVisual.monocromo:
+        return temaMonocromo();
       case EstiloVisual.arcade:
         return temaJuego();
     }
@@ -136,6 +150,14 @@ TextStyle hud(double size, {Color? color, FontWeight? weight}) {
       color: color ?? const Color(0xFFFEF3C7),
       fontWeight: weight ?? FontWeight.w700,
       letterSpacing: 0.1,
+    );
+  }
+  if (GestorTema.instancia.esMonocromo) {
+    return GoogleFonts.inter(
+      fontSize: size * 1.35,
+      color: color ?? Colors.white,
+      fontWeight: weight ?? FontWeight.w800,
+      letterSpacing: -0.2,
     );
   }
   return GoogleFonts.pressStart2p(
@@ -313,6 +335,40 @@ class _BotonJuegoState extends State<BotonJuego> {
       );
     }
 
+    if (gestor.esMonocromo) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: SizedBox(
+          width: widget.expandir ? double.infinity : null,
+          height: 48,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: activo ? (widget.color ?? Colors.white) : const Color(0xFF262626),
+              foregroundColor: activo ? (widget.color != null ? widget.colorTexto : Colors.black) : const Color(0xFF737373),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(
+                  color: activo ? (widget.color ?? Colors.white) : const Color(0xFF404040),
+                  width: 1.2,
+                ),
+              ),
+            ),
+            onPressed: widget.onPressed,
+            icon: widget.icono != null ? Icon(widget.icono, size: 20) : const SizedBox.shrink(),
+            label: Text(
+              widget.texto,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     // Arcade (Retro Pixel con sombra sólida)
     return GestureDetector(
       onTapDown: activo ? (_) => setState(() => abajo = true) : null,
@@ -416,6 +472,25 @@ class TarjetaJuego extends StatelessWidget {
       );
     }
 
+    if (gestor.esMonocromo) {
+      return Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: gestor.colorSuperficie,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: bordeColor, width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              offset: const Offset(0, 3),
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: child,
+      );
+    }
+
     // Arcade (Retro Pixel con sombra sólida de 0 desenfoque)
     return Container(
       padding: padding,
@@ -457,14 +532,14 @@ class BarraJuego extends StatelessWidget {
       duration: const Duration(milliseconds: 600),
       curve: Curves.easeOutCubic,
       builder: (context, v, _) {
-        if (gestor.esMaduro || gestor.esCalido) {
+        if (gestor.esMaduro || gestor.esCalido || gestor.esMonocromo) {
           return ClipRRect(
             borderRadius: BorderRadius.circular(alto / 2),
             child: LinearProgressIndicator(
               value: v,
               minHeight: alto,
               backgroundColor: gestor.colorBorde,
-              valueColor: AlwaysStoppedAnimation(color),
+              valueColor: AlwaysStoppedAnimation(gestor.esMonocromo ? Colors.white : color),
             ),
           );
         }
@@ -646,6 +721,71 @@ class HudNivel extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   BarraJuego(valor: actual / 100, color: const Color(0xFFF59E0B), alto: 8),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (gestor.esMonocromo) {
+      return TarjetaJuego(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                '$nivel',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Nivel $nivel • Enfoque Neutral',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '$actual / 100 XP',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFA3A3A3),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  BarraJuego(valor: actual / 100, color: Colors.white, alto: 8),
                 ],
               ),
             ),
@@ -847,60 +987,160 @@ ThemeData temaCalido() {
   );
 }
 
+ThemeData temaMonocromo() {
+  const bg = Color(0xFF0F0F0F); // Negro neutro profundo
+  const surface = Color(0xFF1B1B1B); // Gris oscuro neutro
+  const border = Color(0xFF333333); // Gris medio sobrio
+  const accent = Color(0xFFFFFFFF); // Blanco puro alto contraste
+  const primary = Color(0xFFE5E5E5); // Blanco plata neutro
+  const textMuted = Color(0xFFA3A3A3); // Gris legible
+
+  final base = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: const ColorScheme.dark(
+      surface: surface,
+      primary: accent,
+      secondary: primary,
+      outline: border,
+    ),
+  );
+
+  return base.copyWith(
+    scaffoldBackgroundColor: bg,
+    textTheme: base.textTheme.apply(
+      fontFamily: GoogleFonts.inter().fontFamily,
+      bodyColor: Colors.white,
+      displayColor: Colors.white,
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: bg,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      titleTextStyle: GoogleFonts.inter(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+      ),
+      iconTheme: const IconThemeData(color: Colors.white),
+    ),
+    cardTheme: CardThemeData(
+      color: surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: border, width: 1.2),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: border, width: 1.2),
+      ),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: surface,
+      indicatorColor: Colors.white.withValues(alpha: 0.15),
+      labelTextStyle: WidgetStatePropertyAll(
+        GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 12),
+      ),
+      iconTheme: WidgetStateProperty.resolveWith((estados) => IconThemeData(
+        color: estados.contains(WidgetState.selected) ? Colors.white : textMuted,
+      )),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: surface,
+      labelStyle: const TextStyle(color: textMuted),
+      hintStyle: const TextStyle(color: textMuted),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white, width: 1.8)),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: surface,
+      behavior: SnackBarBehavior.floating,
+      contentTextStyle: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: border, width: 1),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: Colors.white,
+        textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15),
+      ),
+    ),
+  );
+}
+
 void mostrarSelectorTema(BuildContext context) {
   showModalBottomSheet(
     context: context,
-    backgroundColor: Colores.nocheClara,
+    backgroundColor: GestorTema.instancia.colorSuperficie,
+    isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (ctx) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.palette_rounded, color: Colores.cian, size: 24),
-                const SizedBox(width: 10),
-                Text('Personalizar Estilo Visual', style: hud(11, color: Colores.luna)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Elige la apariencia que mejor se adapte a tu forma de estudiar:',
-              style: TextStyle(color: Colores.tenue, fontSize: 13),
-            ),
-            const SizedBox(height: 18),
-            _buildOpcionTema(
-              ctx,
-              estilo: EstiloVisual.arcade,
-              titulo: 'Juvenil / Cyberpunk HUD',
-              subtitulo: 'Estilo arcade retro con fuente pixel art y colores neón',
-              icono: Icons.sports_esports_rounded,
-              color: Colores.violeta,
-            ),
-            const SizedBox(height: 10),
-            _buildOpcionTema(
-              ctx,
-              estilo: EstiloVisual.maduro,
-              titulo: 'Maduro / Minimalista Ejecutivo',
-              subtitulo: 'Tipografía moderna limpia, tonos sobrios y sin exceso de IA',
-              icono: Icons.workspace_premium_rounded,
-              color: Colores.cian,
-            ),
-            const SizedBox(height: 10),
-            _buildOpcionTema(
-              ctx,
-              estilo: EstiloVisual.calido,
-              titulo: 'Biblioteca Cálida & Café',
-              subtitulo: 'Ambiente sereno, tonos ámbar y lectura relajante',
-              icono: Icons.menu_book_rounded,
-              color: Colores.sol,
-            ),
-          ],
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.palette_rounded, color: GestorTema.instancia.colorAcento, size: 24),
+                  const SizedBox(width: 10),
+                  Text('Personalizar Estilo Visual', style: hud(11, color: Colores.luna)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Elige la apariencia que mejor se adapte a tu forma de estudiar:',
+                style: TextStyle(color: Colores.tenue, fontSize: 13),
+              ),
+              const SizedBox(height: 18),
+              _buildOpcionTema(
+                ctx,
+                estilo: EstiloVisual.arcade,
+                titulo: 'Juvenil / Cyberpunk HUD',
+                subtitulo: 'Estilo arcade retro con fuente pixel art y colores neón',
+                icono: Icons.sports_esports_rounded,
+                color: Colores.violeta,
+              ),
+              const SizedBox(height: 10),
+              _buildOpcionTema(
+                ctx,
+                estilo: EstiloVisual.maduro,
+                titulo: 'Maduro / Minimalista Ejecutivo',
+                subtitulo: 'Tipografía moderna limpia, tonos sobrios y sin exceso de IA',
+                icono: Icons.workspace_premium_rounded,
+                color: Colores.cian,
+              ),
+              const SizedBox(height: 10),
+              _buildOpcionTema(
+                ctx,
+                estilo: EstiloVisual.calido,
+                titulo: 'Biblioteca Cálida & Café',
+                subtitulo: 'Ambiente sereno, tonos ámbar y lectura relajante',
+                icono: Icons.menu_book_rounded,
+                color: Colores.sol,
+              ),
+              const SizedBox(height: 10),
+              _buildOpcionTema(
+                ctx,
+                estilo: EstiloVisual.monocromo,
+                titulo: 'Blanco y Negro / Neutral',
+                subtitulo: 'Minimalista puro, sobrio y sin distracciones de color',
+                icono: Icons.contrast_rounded,
+                color: Colors.white,
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -925,10 +1165,10 @@ Widget _buildOpcionTema(
     child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: seleccionado ? color.withValues(alpha: 0.15) : Colores.noche,
+        color: seleccionado ? color.withValues(alpha: 0.15) : GestorTema.instancia.colorFondo,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: seleccionado ? color : Colores.borde,
+          color: seleccionado ? color : GestorTema.instancia.colorBorde,
           width: seleccionado ? 2 : 1,
         ),
       ),

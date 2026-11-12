@@ -853,7 +853,7 @@ class _TarjetaActualizacionElegante extends StatelessWidget {
               children: [
                 _BeneficioItem(texto: 'Acceso directo con cuenta Google / Gmail'),
                 _BeneficioItem(texto: 'Bloqueo de sitios web (YouTube, TikTok, Juegos)'),
-                _BeneficioItem(texto: 'Selector de estilos (Maduro, Juvenil, Cálido)'),
+                _BeneficioItem(texto: 'Selector de 4 estilos (Maduro, Juvenil, Cálido, B&W)'),
                 _BeneficioItem(texto: 'Guía tutorial interactiva paso a paso'),
               ],
             ),

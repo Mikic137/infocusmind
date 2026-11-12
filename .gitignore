@@ -19,6 +19,7 @@ backend/.packages
 *.jks
 *.keystore
 key.properties
+*.apk
 
 # Sistema operativo y logs
 *.log

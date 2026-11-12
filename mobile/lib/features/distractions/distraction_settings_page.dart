@@ -436,7 +436,7 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'Evita distracciones en el navegador durante tu sesión de estudio. Los siguientes dominios no estarán permitidos:',
+                            'Lista de referencia de sitios y juegos web para registrar durante el estudio. Recuerda: para un bloqueo total del navegador en el móvil, desmarca Chrome en la pestaña "Apps Útiles" del Launcher de Estudio.',
                             style: TextStyle(color: Colores.luna, fontSize: 12, height: 1.3),
                           ),
                           const SizedBox(height: 12),
@@ -468,13 +468,26 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                                   final txt = nuevoDominioCtrl.text.trim();
                                   if (txt.isEmpty) return;
                                   final messenger = ScaffoldMessenger.of(context);
-                                  await UsageService.agregarDominioBloqueado(txt);
+                                  final yaEstaba = dominios.contains(
+                                    txt.toLowerCase().replaceAll('http://', '').replaceAll('https://', '').split('/')[0].replaceAll('www.', ''),
+                                  );
+                                  final domLimpio = await UsageService.agregarDominioBloqueado(txt);
+                                  if (domLimpio == null) {
+                                    messenger.showSnackBar(
+                                      const SnackBar(content: Text('Por favor ingresa un dominio válido (ej. roblox.com)')),
+                                    );
+                                    return;
+                                  }
                                   nuevoDominioCtrl.clear();
                                   final actualizados = await UsageService.obtenerDominiosBloqueados();
                                   if (!mounted) return;
                                   setState(() => dominios = actualizados);
                                   messenger.showSnackBar(
-                                    SnackBar(content: Text('Dominio $txt añadido a la lista negra')),
+                                    SnackBar(
+                                      content: Text(yaEstaba
+                                          ? 'El dominio "$domLimpio" ya está en la lista'
+                                          : 'Dominio "$domLimpio" añadido a la lista'),
+                                    ),
                                   );
                                 },
                                 child: const Text('Bloquear', style: TextStyle(fontWeight: FontWeight.bold)),

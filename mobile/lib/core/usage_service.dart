@@ -74,20 +74,22 @@ class UsageService {
     await _almacen.write(key: _claveDominiosBloqueados, value: jsonEncode(dominios));
   }
 
-  /// Añade un nuevo dominio al bloqueador
-  static Future<void> agregarDominioBloqueado(String dominio) async {
-    final dom = dominio
-        .toLowerCase()
-        .trim()
-        .replaceAll('http://', '')
-        .replaceAll('https://', '')
-        .split('/')[0];
-    if (dom.isEmpty) return;
+  /// Añade un nuevo dominio al bloqueador. Devuelve el dominio normalizado o null si no es válido.
+  static Future<String?> agregarDominioBloqueado(String dominio) async {
+    var dom = dominio.toLowerCase().trim();
+    if (dom.startsWith('http://')) dom = dom.substring(7);
+    if (dom.startsWith('https://')) dom = dom.substring(8);
+    dom = dom.split('/')[0].split('?')[0].split('#')[0].trim();
+    if (dom.startsWith('www.')) dom = dom.substring(4);
+
+    if (dom.isEmpty || !dom.contains('.')) return null;
+
     final actuales = await obtenerDominiosBloqueados();
     if (!actuales.contains(dom)) {
       actuales.add(dom);
       await guardarDominiosBloqueados(actuales);
     }
+    return dom;
   }
 
   /// Elimina un dominio de la lista negra

@@ -444,91 +444,229 @@ Future<Response> handleAdjustDistractions(
   try {
     final conn = await abrirConexion();
     try {
-      // 1. Ajustar TikTok a tiempos sutiles (micro-distracciones de 2 a 4 minutos)
-      final rTikTok = await conn.execute(
-        "SELECT id FROM distraction_logs WHERE app_name = 'TikTok' ORDER BY id"
+      // 1. Obtener lista de usuarios para asignarles los eventos
+      final rUsers = await conn.execute(
+        "SELECT id, email, created_at FROM users WHERE email LIKE '%@gmail.com' ORDER BY id"
       );
-      if (rTikTok.length > 8) {
-        final idsToDelete = rTikTok.skip(8).map((r) => r[0] as int).toList();
-        for (final id in idsToDelete) {
+      if (rUsers.isEmpty) {
+        return Response(400,
+            body: jsonEncode({'error': 'No hay usuarios estudiantiles registrados'}),
+            headers: {'content-type': 'application/json'});
+      }
+      final userList = rUsers.map((r) => {
+        'id': r[0] as int,
+        'email': r[1].toString(),
+        'created_at': (r[2] as DateTime),
+      }).toList();
+
+      // 2. Limpiar registros automáticos previos para evitar duplicados residuales
+      await conn.execute('''
+        DELETE FROM distraction_logs 
+        WHERE app_name IN (
+          'Brawl Stars', 'Clash Royale', 'Free Fire', 'Roblox', 'Call of Duty Mobile',
+          'DB LEGENDS', 'TikTok', 'Instagram', 'YouTube', 'WhatsApp', 'Discord', 'Facebook', 'Pinterest', 'Spotify'
+        )
+      ''');
+
+      // 3. Definir la lista de distracciones escaladas ("un poco menos del doble", ratio ~1.65x - 1.75x)
+      // Incluyendo Brawl Stars y otros juegos móviles populares
+      final itemsDistraccion = <Map<String, dynamic>>[
+        // --- BRAWL STARS (Solicitado por el usuario) ---
+        // 7 eventos, ~31 minutos en total
+        {'app': 'Brawl Stars', 'pkg': 'com.supercell.brawlstars', 'sec': 260, 'min_offset': 15},
+        {'app': 'Brawl Stars', 'pkg': 'com.supercell.brawlstars', 'sec': 310, 'min_offset': 28},
+        {'app': 'Brawl Stars', 'pkg': 'com.supercell.brawlstars', 'sec': 240, 'min_offset': 45},
+        {'app': 'Brawl Stars', 'pkg': 'com.supercell.brawlstars', 'sec': 280, 'min_offset': 72},
+        {'app': 'Brawl Stars', 'pkg': 'com.supercell.brawlstars', 'sec': 230, 'min_offset': 110},
+        {'app': 'Brawl Stars', 'pkg': 'com.supercell.brawlstars', 'sec': 290, 'min_offset': 150},
+        {'app': 'Brawl Stars', 'pkg': 'com.supercell.brawlstars', 'sec': 270, 'min_offset': 190},
+
+        // --- CLASH ROYALE (Juego) ---
+        // 5 eventos, ~20 minutos en total
+        {'app': 'Clash Royale', 'pkg': 'com.supercell.clashroyale', 'sec': 230, 'min_offset': 20},
+        {'app': 'Clash Royale', 'pkg': 'com.supercell.clashroyale', 'sec': 280, 'min_offset': 55},
+        {'app': 'Clash Royale', 'pkg': 'com.supercell.clashroyale', 'sec': 210, 'min_offset': 90},
+        {'app': 'Clash Royale', 'pkg': 'com.supercell.clashroyale', 'sec': 260, 'min_offset': 135},
+        {'app': 'Clash Royale', 'pkg': 'com.supercell.clashroyale', 'sec': 240, 'min_offset': 180},
+
+        // --- FREE FIRE (Juego) ---
+        // 4 eventos, ~23 minutos en total
+        {'app': 'Free Fire', 'pkg': 'com.dts.freefireth', 'sec': 330, 'min_offset': 30},
+        {'app': 'Free Fire', 'pkg': 'com.dts.freefireth', 'sec': 380, 'min_offset': 75},
+        {'app': 'Free Fire', 'pkg': 'com.dts.freefireth', 'sec': 310, 'min_offset': 120},
+        {'app': 'Free Fire', 'pkg': 'com.dts.freefireth', 'sec': 360, 'min_offset': 160},
+
+        // --- ROBLOX (Juego) ---
+        // 4 eventos, ~19 minutos en total
+        {'app': 'Roblox', 'pkg': 'com.roblox.client', 'sec': 280, 'min_offset': 25},
+        {'app': 'Roblox', 'pkg': 'com.roblox.client', 'sec': 320, 'min_offset': 65},
+        {'app': 'Roblox', 'pkg': 'com.roblox.client', 'sec': 260, 'min_offset': 105},
+        {'app': 'Roblox', 'pkg': 'com.roblox.client', 'sec': 290, 'min_offset': 145},
+
+        // --- CALL OF DUTY MOBILE (Juego) ---
+        // 3 eventos, ~17 minutos en total
+        {'app': 'Call of Duty Mobile', 'pkg': 'com.activision.callofduty.shooter', 'sec': 340, 'min_offset': 40},
+        {'app': 'Call of Duty Mobile', 'pkg': 'com.activision.callofduty.shooter', 'sec': 360, 'min_offset': 95},
+        {'app': 'Call of Duty Mobile', 'pkg': 'com.activision.callofduty.shooter', 'sec': 310, 'min_offset': 170},
+
+        // --- DB LEGENDS (Juego aumentado a tiempo de partida real) ---
+        // 5 eventos, ~19.5 minutos en total
+        {'app': 'DB LEGENDS', 'pkg': 'com.bandainamcoent.dblegends_app', 'sec': 240, 'min_offset': 18},
+        {'app': 'DB LEGENDS', 'pkg': 'com.bandainamcoent.dblegends_app', 'sec': 260, 'min_offset': 48},
+        {'app': 'DB LEGENDS', 'pkg': 'com.bandainamcoent.dblegends_app', 'sec': 210, 'min_offset': 82},
+        {'app': 'DB LEGENDS', 'pkg': 'com.bandainamcoent.dblegends_app', 'sec': 230, 'min_offset': 125},
+        {'app': 'DB LEGENDS', 'pkg': 'com.bandainamcoent.dblegends_app', 'sec': 230, 'min_offset': 165},
+
+        // --- TIKTOK (Escalado de 8 a 14 eventos: ~58 minutos en total, ~1.8x) ---
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 240, 'min_offset': 12},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 280, 'min_offset': 26},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 220, 'min_offset': 38},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 260, 'min_offset': 52},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 270, 'min_offset': 68},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 230, 'min_offset': 85},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 280, 'min_offset': 100},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 250, 'min_offset': 115},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 240, 'min_offset': 130},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 270, 'min_offset': 148},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 250, 'min_offset': 165},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 230, 'min_offset': 185},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 260, 'min_offset': 205},
+        {'app': 'TikTok', 'pkg': 'com.zhiliaoapp.musically', 'sec': 240, 'min_offset': 225},
+
+        // --- INSTAGRAM (Escalado de 6 a 10 eventos: ~38 minutos en total, ~1.8x) ---
+        {'app': 'Instagram', 'pkg': 'com.instagram.android', 'sec': 230, 'min_offset': 15},
+        {'app': 'Instagram', 'pkg': 'com.instagram.android', 'sec': 260, 'min_offset': 35},
+        {'app': 'Instagram', 'pkg': 'com.instagram.android', 'sec': 210, 'min_offset': 58},
+        {'app': 'Instagram', 'pkg': 'com.instagram.android', 'sec': 250, 'min_offset': 78},
+        {'app': 'Instagram', 'pkg': 'com.instagram.android', 'sec': 220, 'min_offset': 98},
+        {'app': 'Instagram', 'pkg': 'com.instagram.android', 'sec': 240, 'min_offset': 122},
+        {'app': 'Instagram', 'pkg': 'com.instagram.android', 'sec': 230, 'min_offset': 142},
+        {'app': 'Instagram', 'pkg': 'com.instagram.android', 'sec': 250, 'min_offset': 168},
+        {'app': 'Instagram', 'pkg': 'com.instagram.android', 'sec': 220, 'min_offset': 195},
+        {'app': 'Instagram', 'pkg': 'com.instagram.android', 'sec': 210, 'min_offset': 218},
+
+        // --- YOUTUBE (Escalado de 5 a 8 eventos: ~36 minutos en total, ~1.8x) ---
+        {'app': 'YouTube', 'pkg': 'com.google.android.youtube', 'sec': 270, 'min_offset': 22},
+        {'app': 'YouTube', 'pkg': 'com.google.android.youtube', 'sec': 310, 'min_offset': 46},
+        {'app': 'YouTube', 'pkg': 'com.google.android.youtube', 'sec': 250, 'min_offset': 70},
+        {'app': 'YouTube', 'pkg': 'com.google.android.youtube', 'sec': 280, 'min_offset': 96},
+        {'app': 'YouTube', 'pkg': 'com.google.android.youtube', 'sec': 260, 'min_offset': 128},
+        {'app': 'YouTube', 'pkg': 'com.google.android.youtube', 'sec': 290, 'min_offset': 155},
+        {'app': 'YouTube', 'pkg': 'com.google.android.youtube', 'sec': 250, 'min_offset': 182},
+        {'app': 'YouTube', 'pkg': 'com.google.android.youtube', 'sec': 270, 'min_offset': 210},
+
+        // --- WHATSAPP (Escalado de 4 a 6 eventos: ~17 minutos en total) ---
+        {'app': 'WhatsApp', 'pkg': 'com.whatsapp', 'sec': 160, 'min_offset': 14},
+        {'app': 'WhatsApp', 'pkg': 'com.whatsapp', 'sec': 180, 'min_offset': 42},
+        {'app': 'WhatsApp', 'pkg': 'com.whatsapp', 'sec': 150, 'min_offset': 84},
+        {'app': 'WhatsApp', 'pkg': 'com.whatsapp', 'sec': 170, 'min_offset': 118},
+        {'app': 'WhatsApp', 'pkg': 'com.whatsapp', 'sec': 160, 'min_offset': 162},
+        {'app': 'WhatsApp', 'pkg': 'com.whatsapp', 'sec': 190, 'min_offset': 202},
+
+        // --- DISCORD (Escalado a 4 eventos: ~18 minutos) ---
+        {'app': 'Discord', 'pkg': 'com.discord', 'sec': 260, 'min_offset': 32},
+        {'app': 'Discord', 'pkg': 'com.discord', 'sec': 290, 'min_offset': 88},
+        {'app': 'Discord', 'pkg': 'com.discord', 'sec': 270, 'min_offset': 138},
+        {'app': 'Discord', 'pkg': 'com.discord', 'sec': 280, 'min_offset': 192},
+
+        // --- PINTEREST (3 eventos: ~15 minutos) ---
+        {'app': 'Pinterest', 'pkg': 'com.pinterest', 'sec': 290, 'min_offset': 44},
+        {'app': 'Pinterest', 'pkg': 'com.pinterest', 'sec': 310, 'min_offset': 108},
+        {'app': 'Pinterest', 'pkg': 'com.pinterest', 'sec': 280, 'min_offset': 176},
+
+        // --- SPOTIFY (3 eventos: ~12 minutos) ---
+        {'app': 'Spotify', 'pkg': 'com.spotify.music', 'sec': 240, 'min_offset': 36},
+        {'app': 'Spotify', 'pkg': 'com.spotify.music', 'sec': 260, 'min_offset': 92},
+        {'app': 'Spotify', 'pkg': 'com.spotify.music', 'sec': 250, 'min_offset': 154},
+
+        // --- FACEBOOK (2 eventos: ~8 minutos) ---
+        {'app': 'Facebook', 'pkg': 'com.facebook.katana', 'sec': 240, 'min_offset': 50},
+        {'app': 'Facebook', 'pkg': 'com.facebook.katana', 'sec': 260, 'min_offset': 130},
+      ];
+
+      // 4. Insertar las distracciones asociadas a usuarios en orden rotativo
+      var insertadas = 0;
+      for (var i = 0; i < itemsDistraccion.length; i++) {
+        final item = itemsDistraccion[i];
+        final usuario = userList[i % userList.length];
+        final uId = usuario['id'] as int;
+        final baseDate = usuario['created_at'] as DateTime;
+        final offset = item['min_offset'] as int;
+        final fechaDist = baseDate.add(Duration(minutes: offset));
+
+        await conn.execute(
+          Sql.named('''
+            INSERT INTO distraction_logs (user_id, package_name, app_name, seconds, created_at)
+            VALUES (@u, @pkg, @app, @sec, @dt)
+          '''),
+          parameters: {
+            'u': uId,
+            'pkg': item['pkg'],
+            'app': item['app'],
+            'sec': item['sec'],
+            'dt': fechaDist,
+          },
+        );
+        insertadas++;
+      }
+
+      // 5. Escalar las sesiones de estudio (duplica pero un poco menos: ~34 horas totales)
+      // Comprobar sesiones actuales
+      final rSesiones = await conn.execute("SELECT COUNT(*) FROM focus_sessions");
+      final sesionesActuales = (rSesiones.first[0] as num).toInt();
+
+      var sesionesNuevas = 0;
+      if (sesionesActuales < 85) {
+        // Insertar sesiones complementarias de 25 a 45 minutos para los estudiantes
+        for (var i = 0; i < userList.length; i++) {
+          final usuario = userList[i];
+          final uId = usuario['id'] as int;
+          final baseDate = usuario['created_at'] as DateTime;
+          final estM = 25 + ((i * 7) % 20); // 25 a 45 minutos
+          final sec = estM * 60;
+          final inicio = baseDate.add(Duration(minutes: 30 + (i * 12)));
+
           await conn.execute(
-            Sql.named('DELETE FROM distraction_logs WHERE id = @id'),
-            parameters: {'id': id},
+            Sql.named('''
+              INSERT INTO focus_sessions (
+                user_id, step_title, est_minutes, started_at, ended_at, actual_seconds, status, counts_for_learning
+              )
+              VALUES (
+                @u, @title, @est_m, @started, @ended, @actual_s, 'completed', true
+              )
+            '''),
+            parameters: {
+              'u': uId,
+              'title': 'Sesión de concentración intensiva',
+              'est_m': estM,
+              'started': inicio,
+              'ended': inicio.add(Duration(seconds: sec)),
+              'actual_s': sec,
+            },
           );
+          sesionesNuevas++;
+          if (sesionesActuales + sesionesNuevas >= 92) break;
         }
       }
-      final remainingTikTok = await conn.execute(
-        "SELECT id FROM distraction_logs WHERE app_name = 'TikTok' ORDER BY id"
-      );
-      // Suma total: ~1910 seg = ~32 minutos distribuidos en 8 registros
-      final tiemposTikTok = [210, 260, 190, 240, 270, 220, 250, 270];
-      for (var i = 0; i < remainingTikTok.length; i++) {
-        final id = remainingTikTok[i][0] as int;
-        final seg = tiemposTikTok[i % tiemposTikTok.length];
-        await conn.execute(
-          Sql.named('UPDATE distraction_logs SET seconds = @s WHERE id = @id'),
-          parameters: {'s': seg, 'id': id},
-        );
-      }
 
-      // 2. Ajustar Instagram a tiempos naturales (~21 minutos distribuidos en 6 registros)
-      final rInsta = await conn.execute(
-        "SELECT id FROM distraction_logs WHERE app_name = 'Instagram' ORDER BY id"
-      );
-      if (rInsta.length > 6) {
-        final idsToDelete = rInsta.skip(6).map((r) => r[0] as int).toList();
-        for (final id in idsToDelete) {
-          await conn.execute(
-            Sql.named('DELETE FROM distraction_logs WHERE id = @id'),
-            parameters: {'id': id},
-          );
-        }
-      }
-      final remainingInsta = await conn.execute(
-        "SELECT id FROM distraction_logs WHERE app_name = 'Instagram' ORDER BY id"
-      );
-      final tiemposInsta = [190, 230, 210, 240, 180, 220];
-      for (var i = 0; i < remainingInsta.length; i++) {
-        final id = remainingInsta[i][0] as int;
-        final seg = tiemposInsta[i % tiemposInsta.length];
-        await conn.execute(
-          Sql.named('UPDATE distraction_logs SET seconds = @s WHERE id = @id'),
-          parameters: {'s': seg, 'id': id},
-        );
-      }
-
-      // 3. Ajustar WhatsApp a micro-consultas (~10 minutos)
-      final rWa = await conn.execute(
-        "SELECT id FROM distraction_logs WHERE app_name = 'WhatsApp' ORDER BY id"
-      );
-      final tiemposWa = [120, 160, 140, 150];
-      for (var i = 0; i < rWa.length; i++) {
-        final id = rWa[i][0] as int;
-        final seg = tiemposWa[i % tiemposWa.length];
-        await conn.execute(
-          Sql.named('UPDATE distraction_logs SET seconds = @s WHERE id = @id'),
-          parameters: {'s': seg, 'id': id},
-        );
-      }
-
-      // 4. Ajustar YouTube (~14 minutos)
-      final rYt = await conn.execute(
-        "SELECT id FROM distraction_logs WHERE app_name = 'YouTube' ORDER BY id"
-      );
-      final tiemposYt = [260, 310, 270];
-      for (var i = 0; i < rYt.length; i++) {
-        final id = rYt[i][0] as int;
-        final seg = tiemposYt[i % tiemposYt.length];
-        await conn.execute(
-          Sql.named('UPDATE distraction_logs SET seconds = @s WHERE id = @id'),
-          parameters: {'s': seg, 'id': id},
-        );
-      }
+      // 6. Consultar métricas finales consolidadas
+      final rTotalDist = await conn.execute("SELECT COUNT(*), SUM(seconds) FROM distraction_logs");
+      final totalDistCount = rTotalDist.first[0];
+      final totalDistSec = rTotalDist.first[1];
+      final rTotalSes = await conn.execute("SELECT COUNT(*), SUM(actual_seconds) FROM focus_sessions");
+      final totalSesCount = rTotalSes.first[0];
+      final totalSesSec = rTotalSes.first[1];
 
       return Response(200,
           body: jsonEncode({
             'success': true,
-            'mensaje': 'Tiempos de distracciones calibrados de forma sutil y realista.',
+            'mensaje': 'Estadísticas calibradas y escaladas exitosamente con Brawl Stars y juegos móviles.',
+            'distracciones_insertadas': insertadas,
+            'total_distracciones_registradas': totalDistCount,
+            'minutos_totales_distraccion': ((totalDistSec as num).toInt() / 60).round(),
+            'sesiones_de_estudio_agregadas': sesionesNuevas,
+            'total_sesiones_estudio': totalSesCount,
+            'horas_totales_estudio': (((totalSesSec as num).toInt() / 3600)).toStringAsFixed(1),
           }),
           headers: {'content-type': 'application/json'});
     } finally {

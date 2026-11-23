@@ -6,7 +6,7 @@ Future<Response> handleLanding(Request request) async {
   final customDownloadUrl = env['APK_DOWNLOAD_URL'];
   final downloadHref = (customDownloadUrl != null && customDownloadUrl.trim().isNotEmpty)
       ? customDownloadUrl.trim()
-      : '/download/InfocusMind_v1.1.3.apk';
+      : '/download/InfocusMind_v1.1.4.apk';
 
   final html = '''<!DOCTYPE html>
 <html lang="es">
@@ -484,8 +484,7 @@ Future<Response> handleLanding(Request request) async {
         <a href="#caracteristicas" class="nav-link">Características</a>
         <a href="#launcher" class="nav-link">Modo Launcher</a>
         <a href="#instalacion" class="nav-link">Instalación</a>
-        <a href="/admin/metrics?key=infocus2026" class="nav-link">Métricas</a>
-        <a href="$downloadHref" class="btn-nav">Descargar APK v1.1.3</a>
+        <a href="$downloadHref" class="btn-nav">Descargar APK v1.1.4</a>
       </nav>
     </div>
   </header>
@@ -493,7 +492,7 @@ Future<Response> handleLanding(Request request) async {
   <!-- Hero Section -->
   <main class="hero">
     <div class="badge-hero">
-      <span>⚡ NUEVA VERSIÓN</span> InfocusMind v1.1.3 Oficial ya disponible
+      <span>⚡ NUEVA VERSIÓN</span> InfocusMind v1.1.4 Oficial ya disponible
     </div>
     <h1 class="hero-title">
       Convierte tu estudio en un videojuego y <span class="gradient-text">derrota las distracciones</span>
@@ -678,7 +677,7 @@ Future<Response> handleLanding(Request request) async {
       <a href="#">Inicio</a>
       <a href="#caracteristicas">Características</a>
       <a href="#instalacion">Instalación</a>
-      <a href="/admin/metrics?key=infocus2026">Panel de Métricas</a>
+      <a href="/privacy">Privacidad</a>
       <a href="https://github.com/Mikic137/infocusmind" target="_blank" rel="noopener">GitHub</a>
     </div>
     <p>InfocusMind &bull; Proyecto de Productividad Gamificada para Estudiantes &bull; 2026</p>

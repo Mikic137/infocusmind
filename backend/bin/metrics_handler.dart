@@ -3,6 +3,17 @@ import 'dart:io';
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 
+String _enmascararCorreo(String email) {
+  final partes = email.split('@');
+  if (partes.length != 2) return '***@***.com';
+  final nombre = partes[0];
+  final dominio = partes[1];
+  if (nombre.length <= 2) {
+    return '${nombre[0]}***@$dominio';
+  }
+  return '${nombre[0]}***${nombre[nombre.length - 1]}@$dominio';
+}
+
 Future<Response> handleMetrics(
     Request request, Future<Connection> Function() abrirConexion) async {
   final env = Platform.environment;
@@ -88,12 +99,12 @@ Future<Response> handleMetrics(
         LIMIT 250
       ''');
       final recentUsers = rRecentUsers.map((row) {
-        final email = row[1] as String;
+        final rawEmail = row[1] as String;
         final rawDt = row[2] as DateTime;
         final ecuadorDt = rawDt.toUtc().subtract(const Duration(hours: 5));
         return {
           'id': row[0],
-          'email': email,
+          'email': _enmascararCorreo(rawEmail),
           'created_at': ecuadorDt.toString().substring(0, 19),
           'tasks': (row[3] as num).toInt(),
           'sessions': (row[4] as num).toInt(),
@@ -133,7 +144,7 @@ Future<Response> handleMetrics(
         final ecuadorDt = rawDt.toUtc().subtract(const Duration(hours: 5));
         return {
           'id': row[0],
-          'email': row[1].toString(),
+          'email': _enmascararCorreo(row[1].toString()),
           'app': row[2].toString(),
           'display_time': displayTime,
           'created_at': ecuadorDt.toString().substring(0, 19),
@@ -439,7 +450,7 @@ Future<Response> handleMetrics(
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Correo</th>
+                <th>Usuario (Privado)</th>
                 <th>Fecha (Ecuador)</th>
                 <th>Misiones</th>
                 <th>Sesiones</th>
@@ -449,7 +460,7 @@ Future<Response> handleMetrics(
               ${recentUsers.isEmpty ? '<tr><td colspan="5" style="text-align:center; color:var(--muted)">Sin registros aún</td></tr>' : recentUsers.map((u) => '''
                 <tr>
                   <td><span class="badge">#${u['id']}</span></td>
-                  <td><strong>${u['email']}</strong></td>
+                  <td><strong>${u['email']}</strong> <span style="font-size:10px; color:var(--menta); margin-left:4px;">🔒</span></td>
                   <td style="color:var(--muted); font-size:12px;">${u['created_at']}</td>
                   <td><span class="badge" style="background:rgba(0,210,211,0.15); color:var(--cian);">${u['tasks']}</span></td>
                   <td><span class="badge" style="background:rgba(46,204,113,0.15); color:var(--menta);">${u['sessions']}</span></td>
@@ -498,7 +509,7 @@ Future<Response> handleMetrics(
           <thead>
             <tr>
               <th>ID</th>
-              <th>Usuario</th>
+              <th>Usuario (Privado)</th>
               <th>Aplicación</th>
               <th>Tiempo Distraído</th>
               <th>Fecha y Hora</th>
@@ -508,7 +519,7 @@ Future<Response> handleMetrics(
             ${recentLogs.isEmpty ? '<tr><td colspan="5" style="text-align:center; color:var(--muted)">No hay registros recientes</td></tr>' : recentLogs.map((l) => '''
               <tr>
                 <td><span class="badge">#${l['id']}</span></td>
-                <td><strong>${l['email']}</strong></td>
+                <td><strong>${l['email']}</strong> <span style="font-size:10px; color:var(--menta); margin-left:4px;">🔒</span></td>
                 <td><span class="badge" style="background:rgba(254,211,48,0.18); color:var(--sol)">${l['app']}</span></td>
                 <td><span class="badge" style="background:rgba(255,107,107,0.18); color:var(--coral)">${l['display_time']}</span></td>
                 <td style="color:var(--muted); font-size:12px;">${l['created_at']}</td>

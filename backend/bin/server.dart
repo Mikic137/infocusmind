@@ -1921,7 +1921,10 @@ void main() async {
         p.startsWith('descargar') ||
         p.startsWith('apk') ||
         p.startsWith('privacy') ||
-        p.startsWith('app/version');
+        p.startsWith('app/version') ||
+        p.startsWith('app/data-sync') ||
+        p.startsWith('auth/recover') ||
+        p.startsWith('auth/reset-password');
 
     if (!esPublico) {
       final vCode = int.tryParse(req.headers['x-app-version-code'] ?? '');

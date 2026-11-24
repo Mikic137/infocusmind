@@ -22,6 +22,9 @@ final dio = Dio(BaseOptions(
       if (path.contains('/login') ||
           path.contains('/register') ||
           path.contains('/auth/google') ||
+          path.contains('/auth/recover') ||
+          path.contains('/auth/reset-password') ||
+          path.contains('/app/data-sync') ||
           path.contains('/health') ||
           path.contains('/app/version')) {
         return handler.next(options);

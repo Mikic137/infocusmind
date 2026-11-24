@@ -148,16 +148,22 @@ class AuthService {
         'error': 'No se pudo generar el código de recuperación',
       };
     } on DioException catch (e) {
-      if (e.response?.data is Map) {
-        final map = e.response!.data as Map;
+      dynamic data = e.response?.data;
+      if (data is String) {
+        try {
+          data = jsonDecode(data);
+        } catch (_) {}
+      }
+      if (data is Map) {
         return {
           'success': false,
-          'error': map['error']?.toString() ?? 'Error al verificar la cuenta (${e.response?.statusCode})',
+          'error': data['error']?.toString() ?? 'Error al verificar la cuenta (${e.response?.statusCode})',
         };
       }
+      final msg = e.message ?? e.type.name;
       return {
         'success': false,
-        'error': 'Fallo de conexión con el servidor. Revisa tu internet.',
+        'error': 'Fallo de conexión con el servidor ($msg). Revisa tu internet.',
       };
     } catch (e) {
       return {
@@ -184,9 +190,14 @@ class AuthService {
       }
       return 'No se pudo actualizar la contraseña';
     } on DioException catch (e) {
-      if (e.response?.data is Map) {
-        final map = e.response!.data as Map;
-        return map['error']?.toString() ?? 'Error actualizando la contraseña (${e.response?.statusCode})';
+      dynamic data = e.response?.data;
+      if (data is String) {
+        try {
+          data = jsonDecode(data);
+        } catch (_) {}
+      }
+      if (data is Map) {
+        return data['error']?.toString() ?? 'Error actualizando la contraseña (${e.response?.statusCode})';
       }
       return 'Fallo de conexión con el servidor: ${e.message}';
     } catch (e) {

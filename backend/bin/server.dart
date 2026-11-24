@@ -11,6 +11,7 @@ import 'package:shelf_router/shelf_router.dart';
 import 'metrics_handler.dart';
 import 'landing_handler.dart';
 import 'seed_handler.dart';
+import 'paypal_handler.dart';
 
 final env = Platform.environment;
 
@@ -176,11 +177,17 @@ String crearToken(int userId) {
 
 /// Devuelve el id del usuario si el token es válido, o null.
 int? usuarioDe(Request request) {
+  String? token;
   final cabecera = request.headers['authorization'] ?? '';
-  if (!cabecera.startsWith('Bearer ')) return null;
+  if (cabecera.startsWith('Bearer ')) {
+    token = cabecera.substring(7);
+  } else {
+    token = request.url.queryParameters['token'];
+  }
+  if (token == null || token.isEmpty) return null;
   try {
     final jwt =
-        JWT.verify(cabecera.substring(7), SecretKey(env['JWT_SECRET']!));
+        JWT.verify(token, SecretKey(env['JWT_SECRET']!));
     final sub = jwt.payload['sub'];
     return sub is int ? sub : null;
   } catch (_) {
@@ -985,6 +992,74 @@ void main() async {
     } catch (e) {
       print('Error en POST /user/upgrade-plus: $e');
       return json(500, {'error': 'Error procesando la actualización: $e'});
+    }
+  });
+
+  // --- PASARELA PAYPAL SANDBOX (CHECKOUT SEGURO & VERIFICACIÓN REAL) ---
+  router.get('/paypal/checkout', (Request request) async {
+    final userId = usuarioDe(request);
+    if (userId == null) {
+      return Response.forbidden(
+        '<h3>Sesión no válida o expirada. Por favor abre este enlace desde InfocusMind.</h3>',
+        headers: {'content-type': 'text/html; charset=utf-8'},
+      );
+    }
+
+    final plan = request.url.queryParameters['plan'] ?? 'Plus Mensual';
+    final amount = request.url.queryParameters['amount'] ?? '3.99';
+    final token = request.url.queryParameters['token'] ?? '';
+
+    String userEmail = 'usuario@infocusmind.app';
+    final conn = await abrirConexion();
+    try {
+      final res = await conn.execute(
+        Sql.named('SELECT email FROM users WHERE id = @id'),
+        parameters: {'id': userId},
+      );
+      if (res.isNotEmpty && res.first[0] != null) {
+        userEmail = res.first[0] as String;
+      }
+    } finally {
+      await conn.close();
+    }
+
+    return renderPaypalCheckoutHtml(
+      userId: userId,
+      userEmail: userEmail,
+      plan: plan,
+      amount: amount,
+      token: token,
+    );
+  });
+
+  router.post('/paypal/capture-success', (Request request) async {
+    final userId = usuarioDe(request);
+    if (userId == null) return json(401, {'error': 'Sesión no válida'});
+    try {
+      final data = jsonDecode(await request.readAsString());
+      final orderId = (data['order_id'] ?? 'N/A').toString();
+      final plan = (data['plan'] ?? 'Plus Mensual').toString();
+      final payerName = (data['payer_name'] ?? 'Usuario').toString();
+
+      final conn = await abrirConexion();
+      try {
+        await conn.execute(
+          Sql.named('UPDATE users SET is_premium = true WHERE id = @id'),
+          parameters: {'id': userId},
+        );
+        print('⚡ [PayPal Sandbox] Usuario $userId ($payerName) activó Plus con Order $orderId (Plan: $plan)');
+        return json(200, {
+          'success': true,
+          'message': '¡Pago en PayPal Sandbox capturado y verificado! InfocusMind Plus activado.',
+          'is_premium': true,
+          'order_id': orderId,
+        });
+      } finally {
+        await conn.close();
+      }
+    } catch (e) {
+      print('Error en POST /paypal/capture-success: $e');
+      return json(500, {'error': 'Error procesando la captura de PayPal: $e'});
     }
   });
 

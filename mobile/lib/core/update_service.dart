@@ -26,7 +26,7 @@ class UpdateService {
             'Hay una nueva versión obligatoria disponible con mejoras de seguridad y nuevas funciones.';
         final force = data['force_update'] == true || codigoVersionActual < minCode;
 
-        if (codigoVersionActual < latestCode && force) {
+        if (codigoVersionActual < latestCode) {
           _dialogoMostrado = true;
           if (!context.mounted) return;
           await _mostrarDialogoActualizacion(
@@ -34,6 +34,7 @@ class UpdateService {
             version: latestVersion,
             mensaje: mensaje,
             url: urlDescarga,
+            esObligatoria: force,
           );
         }
       }
@@ -48,6 +49,7 @@ class UpdateService {
     String version = '1.1.2',
     String? mensaje,
     String? url,
+    bool obligatoria = true,
   }) async {
     final urlFinal = url ?? 'https://infocusmind-production.up.railway.app/download/InfocusMind_v1.1.2.apk';
     final mensajeFinal = mensaje ??
@@ -393,12 +395,14 @@ class UpdateService {
     required String version,
     required String mensaje,
     required String url,
+    bool esObligatoria = true,
   }) async {
     await mostrarTarjetaActualizacion(
       context,
       version: version,
       mensaje: mensaje,
       url: url,
+      obligatoria: esObligatoria,
     );
   }
 }

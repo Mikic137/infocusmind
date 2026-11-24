@@ -7,6 +7,7 @@ import '../../core/subscription_service.dart';
 import '../../core/tema.dart';
 import '../../core/usage_service.dart';
 import '../../core/update_service.dart';
+import '../../core/data_sync_service.dart';
 import '../assistant/assistant_view.dart';
 import '../auth/auth_page.dart';
 import '../distractions/distraction_settings_page.dart';
@@ -51,6 +52,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UpdateService.comprobarActualizacion(context);
+      DataSyncService.comprobarDatosAlIniciar(context);
     });
 
     UsageService.onHomePressed = () {
@@ -823,6 +825,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             onSelected: (val) {
               if (val == 'launcher') {
                 setState(() => enModoLauncher = true);
+              } else if (val == 'sync_data') {
+                DataSyncService.comprobarManualmente(context);
+              } else if (val == 'check_update') {
+                UpdateService.comprobarActualizacion(context);
               } else if (val == 'logout') {
                 salir();
               }
@@ -835,6 +841,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     Icon(Icons.home_rounded, color: Colores.cian, size: 20),
                     SizedBox(width: 10),
                     Text('Modo Launcher', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'sync_data',
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_download_rounded, color: Colores.sol, size: 20),
+                    SizedBox(width: 10),
+                    Text('Descargar datos (OTA)', style: TextStyle(color: Colores.sol, fontSize: 13)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'check_update',
+                child: Row(
+                  children: [
+                    Icon(Icons.system_update_rounded, color: Colores.menta, size: 20),
+                    SizedBox(width: 10),
+                    Text('Buscar actualización', style: TextStyle(color: Colores.menta, fontSize: 13)),
                   ],
                 ),
               ),

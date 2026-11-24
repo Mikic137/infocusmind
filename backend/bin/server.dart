@@ -570,13 +570,56 @@ void main() async {
     return json(200, {
       'latest_version': '1.1.6',
       'latest_version_code': 7,
-      'min_required_version_code': 5,
-      'force_update': false,
+      'min_required_version_code': 7,
+      'force_update': true,
       'title': 'Actualización v1.1.6: Corrección de Bloqueos Web (m.youtube.com)',
       'message':
           '¡Nueva versión v1.1.6 disponible! Corrección integral de bloqueos web móviles (m.youtube.com, youtu.be, m.tiktok.com, redes y juegos), prueba del actualizador directo in-app en 1 toque y optimizaciones de seguridad.',
       'download_url':
           'https://infocusmind-production.up.railway.app/descargar',
+    });
+  });
+
+  // Paquete de datos dinámicos estilo Dragon Ball Legends (Solo descarga datos, no reinstala la app)
+  router.get('/app/data-sync', (Request request) async {
+    return json(200, {
+      'data_version': 7,
+      'size_kb': 42,
+      'title': 'Parche de Datos v1.1.6',
+      'description': 'Reglas actualizadas de bloqueo web (m.youtube.com, youtu.be, redes), cuotas de estudio y optimizaciones de IA.',
+      'blocked_domains': [
+        'youtube.com',
+        'm.youtube.com',
+        'www.youtube.com',
+        'youtu.be',
+        'music.youtube.com',
+        'tiktok.com',
+        'm.tiktok.com',
+        'www.tiktok.com',
+        'vm.tiktok.com',
+        'instagram.com',
+        'm.instagram.com',
+        'facebook.com',
+        'm.facebook.com',
+        'web.facebook.com',
+        'twitter.com',
+        'x.com',
+        'm.twitter.com',
+        'roblox.com',
+        'poki.com',
+        'friv.com',
+        'twitch.tv',
+        'netflix.com',
+        'discord.com',
+        'reddit.com',
+        'm.reddit.com',
+      ],
+      'announcement': {
+        'version': '1.1.6',
+        'badge': 'PARCHE DE DATOS EN VIVO',
+        'title': 'Actualización v1.1.6: Bloqueo Web & Plus',
+        'message': 'Parche aplicado con éxito: m.youtube.com bloqueado, planes Free (10 IA, 5 mapas) y botones de pago activos sin reinstalar.',
+      },
     });
   });
 

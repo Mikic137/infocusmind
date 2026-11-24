@@ -31,6 +31,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool enModoLauncher = false;
   bool _tutorialCompletado = true;
   bool _mostrarCompletadas = false;
+  bool _mostrarAvisoMonetizacion = true;
   final Set<int> _completadasExpandidas = {};
 
   @override
@@ -613,6 +614,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
         children: [
+          if (_mostrarAvisoMonetizacion) ...[
+            _AvisoMonetizacionBanner(
+              onCerrar: () => setState(() => _mostrarAvisoMonetizacion = false),
+              onVerPlus: () => SubscriptionService.mostrarModalPlus(context).then((_) => cargar()),
+            ),
+            const SizedBox(height: 12),
+          ],
           if (tareas.isEmpty)
             const Padding(
               padding: EdgeInsets.all(40),
@@ -1388,5 +1396,138 @@ class _PulsoBotonState extends State<_PulsoBoton>
   Widget build(BuildContext context) {
     if (!widget.activo) return widget.child;
     return ScaleTransition(scale: _s, child: widget.child);
+  }
+}
+
+class _AvisoMonetizacionBanner extends StatelessWidget {
+  final VoidCallback onCerrar;
+  final VoidCallback onVerPlus;
+
+  const _AvisoMonetizacionBanner({
+    required this.onCerrar,
+    required this.onVerPlus,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colores.nocheClara,
+            Colores.noche,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colores.sol, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colores.sol.withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colores.sol.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.workspace_premium_rounded, color: Colores.sol, size: 20),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Monetización Implementada',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colores.menta.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'v1.1.5',
+                            style: TextStyle(
+                              color: Colores.menta,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Text(
+                      'Plan Gratuito vs. InfocusMind Plus',
+                      style: TextStyle(color: Colores.sol, fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.close_rounded, color: Colores.tenue, size: 18),
+                onPressed: onCerrar,
+                tooltip: 'Ocultar aviso',
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            '• Plan Free: 10 acciones con IA y hasta 5 mapas de misiones con subtareas.\n• InfocusMind Plus: IA ilimitada, mapas infinitos y asistente continuo con botones de pago integrados (Tarjeta, Google Pay, PayPal).',
+            style: TextStyle(color: Colores.luna, fontSize: 11, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colores.sol,
+                  foregroundColor: Colores.noche,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: onVerPlus,
+                icon: const Icon(Icons.bolt_rounded, size: 16),
+                label: const Text(
+                  'Ver Planes & Botones de Pago',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colores.tenue,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                ),
+                onPressed: onCerrar,
+                child: const Text('Entendido', style: TextStyle(fontSize: 11)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

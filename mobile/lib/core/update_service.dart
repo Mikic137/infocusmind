@@ -4,8 +4,8 @@ import 'tema.dart';
 import 'usage_service.dart';
 
 class UpdateService {
-  static const int codigoVersionActual = 5; // v1.1.4
-  static const String nombreVersionActual = '1.1.4';
+  static const int codigoVersionActual = 6; // v1.1.5
+  static const String nombreVersionActual = '1.1.5';
 
   static bool _dialogoMostrado = false;
 
@@ -194,10 +194,10 @@ class UpdateService {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          _itemNovedad('Actualizador in-app directo sin ir al navegador'),
-                          _itemNovedad('Misiones completadas plegables en sección limpia'),
-                          _itemNovedad('Sincronización instantánea con el Modo Launcher'),
-                          _itemNovedad('Bloqueo de distracciones y tutorial interactivo'),
+                          _itemNovedad('Monetización: Plan Free (10 IA, 5 mapas) vs. InfocusMind Plus'),
+                          _itemNovedad('Botones de pago oficiales: Tarjeta de Crédito, Google Pay y PayPal'),
+                          _itemNovedad('Recuperación de contraseña con Bot de Seguridad y validación de correos'),
+                          _itemNovedad('Actualizador in-app directo con 1 toque sin salir de la app'),
                         ],
                       ),
                     ),

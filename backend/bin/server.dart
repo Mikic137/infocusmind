@@ -538,15 +538,15 @@ void main() async {
   // Endpoint de comprobacion y forzado de actualizacion
   router.get('/app/version', (Request request) async {
     return json(200, {
-      'latest_version': '1.1.4',
-      'latest_version_code': 5,
+      'latest_version': '1.1.5',
+      'latest_version_code': 6,
       'min_required_version_code': 4,
       'force_update': false,
-      'title': 'Actualización InfocusMind v1.1.4',
+      'title': 'Monetización Implementada: Plan Gratuito vs. InfocusMind Plus',
       'message':
-          'Hemos añadido el nuevo estilo visual "Blanco y Negro / Neutral" minimalista, además de mejoras de interfaz y selector de estilos personalizable.',
+          '¡Nueva actualización v1.1.5! Conoce los límites del Plan Gratuito (10 acciones de IA y 5 mapas de misiones) y desbloquea InfocusMind Plus ilimitado con botones de pago para Tarjetas, Google Pay y PayPal, además de la recuperación de cuenta con Bot OTP.',
       'download_url':
-          'https://infocusmind-production.up.railway.app/download/InfocusMind_v1.1.4.apk',
+          'https://infocusmind-production.up.railway.app/descargar',
     });
   });
 

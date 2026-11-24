@@ -1999,7 +1999,8 @@ void main() async {
         p.startsWith('app/version') ||
         p.startsWith('app/data-sync') ||
         p.startsWith('auth/recover') ||
-        p.startsWith('auth/reset-password');
+        p.startsWith('auth/reset-password') ||
+        p.startsWith('paypal');
 
     if (!esPublico) {
       final vCode = int.tryParse(req.headers['x-app-version-code'] ?? '');

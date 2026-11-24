@@ -480,8 +480,23 @@ void main() async {
     if (apkUrl != null && apkUrl.trim().isNotEmpty) {
       return Response.found(Uri.parse(apkUrl.trim()));
     }
-    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.5/InfocusMind_v1.1.5.apk'));
+    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.6/InfocusMind_v1.1.6.apk'));
   }
+
+  router.get('/download/InfocusMind_v1.1.6.apk', (Request request) async {
+    final localFile = File('public/InfocusMind_v1.1.6.apk');
+    if (await localFile.exists()) {
+      return Response.ok(
+        localFile.openRead(),
+        headers: {
+          'content-type': 'application/vnd.android.package-archive',
+          'content-disposition': 'attachment; filename="InfocusMind_v1.1.6.apk"',
+          'content-length': (await localFile.length()).toString(),
+        },
+      );
+    }
+    return _redirigirDescargaApk();
+  });
 
   router.get('/download/InfocusMind_v1.1.5.apk', (Request request) async {
     final localFile = File('public/InfocusMind_v1.1.5.apk');
@@ -553,13 +568,13 @@ void main() async {
   // Endpoint de comprobacion y forzado de actualizacion
   router.get('/app/version', (Request request) async {
     return json(200, {
-      'latest_version': '1.1.5',
-      'latest_version_code': 6,
-      'min_required_version_code': 4,
+      'latest_version': '1.1.6',
+      'latest_version_code': 7,
+      'min_required_version_code': 5,
       'force_update': false,
-      'title': 'Monetización Implementada: Plan Gratuito vs. InfocusMind Plus',
+      'title': 'Actualización v1.1.6: Corrección de Bloqueos Web (m.youtube.com)',
       'message':
-          '¡Nueva actualización v1.1.5! Conoce los límites del Plan Gratuito (10 acciones de IA y 5 mapas de misiones) y desbloquea InfocusMind Plus ilimitado con botones de pago para Tarjetas, Google Pay y PayPal, además de la recuperación de cuenta con Bot OTP.',
+          '¡Nueva versión v1.1.6 disponible! Corrección integral de bloqueos web móviles (m.youtube.com, youtu.be, m.tiktok.com, redes y juegos), prueba del actualizador directo in-app en 1 toque y optimizaciones de seguridad.',
       'download_url':
           'https://infocusmind-production.up.railway.app/descargar',
     });

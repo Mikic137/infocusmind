@@ -40,22 +40,118 @@ class UsageService {
   static const _claveDominiosBloqueados = 'dominios_bloqueados';
 
   static const List<String> dominiosPredeterminados = [
+    // YouTube y todas sus variantes móviles
     'youtube.com',
+    'm.youtube.com',
+    'www.youtube.com',
+    'youtu.be',
+    'music.youtube.com',
+    'youtube-nocookie.com',
+    // TikTok
     'tiktok.com',
+    'm.tiktok.com',
+    'www.tiktok.com',
+    'vm.tiktok.com',
+    // Instagram y Facebook
     'instagram.com',
+    'm.instagram.com',
+    'www.instagram.com',
     'facebook.com',
+    'm.facebook.com',
+    'web.facebook.com',
+    'touch.facebook.com',
+    'fb.com',
+    // Twitter / X
     'twitter.com',
+    'm.twitter.com',
+    'mobile.twitter.com',
     'x.com',
+    'mobile.x.com',
+    // Redes, streaming y foros
+    'reddit.com',
+    'm.reddit.com',
+    'twitch.tv',
+    'm.twitch.tv',
+    'discord.com',
+    'netflix.com',
+    // Juegos web
     'roblox.com',
     'poki.com',
-    'twitch.tv',
-    'netflix.com',
-    'discord.com',
-    'reddit.com',
     'friv.com',
     'cuevana.pro',
     'animeflv.net',
   ];
+
+  /// Normaliza cualquier URL o dominio quitando protocolos, subdominios comunes (m., www., web.) y rutas.
+  static String normalizarDominioBase(String dominio) {
+    var dom = dominio.toLowerCase().trim();
+    if (dom.startsWith('http://')) dom = dom.substring(7);
+    if (dom.startsWith('https://')) dom = dom.substring(8);
+    dom = dom.split('/')[0].split('?')[0].split('#')[0].split(':')[0].trim();
+    if (dom.startsWith('www.')) dom = dom.substring(4);
+    if (dom.startsWith('m.')) dom = dom.substring(2);
+    if (dom.startsWith('mobile.')) dom = dom.substring(7);
+    if (dom.startsWith('web.')) dom = dom.substring(4);
+    if (dom.startsWith('touch.')) dom = dom.substring(6);
+    return dom;
+  }
+
+  /// Genera automáticamente todas las variantes móviles y de subdominio conocidas para un dominio
+  static List<String> generarVariantesSubdominios(String dominioBase) {
+    final base = normalizarDominioBase(dominioBase);
+    if (base.isEmpty || !base.contains('.')) return [];
+
+    final lista = <String>{
+      base,
+      'm.$base',
+      'www.$base',
+      'mobile.$base',
+      'web.$base',
+    };
+
+    if (base.contains('youtube') || base == 'youtu.be') {
+      lista.addAll([
+        'youtube.com',
+        'm.youtube.com',
+        'www.youtube.com',
+        'youtu.be',
+        'music.youtube.com',
+        'youtube-nocookie.com',
+      ]);
+    } else if (base.contains('tiktok')) {
+      lista.addAll([
+        'tiktok.com',
+        'm.tiktok.com',
+        'www.tiktok.com',
+        'vm.tiktok.com',
+      ]);
+    } else if (base.contains('facebook') || base == 'fb.com') {
+      lista.addAll([
+        'facebook.com',
+        'm.facebook.com',
+        'web.facebook.com',
+        'touch.facebook.com',
+        'fb.com',
+        'm.fb.com',
+      ]);
+    } else if (base.contains('instagram')) {
+      lista.addAll([
+        'instagram.com',
+        'm.instagram.com',
+        'www.instagram.com',
+      ]);
+    } else if (base.contains('twitter') || base == 'x.com') {
+      lista.addAll([
+        'twitter.com',
+        'm.twitter.com',
+        'mobile.twitter.com',
+        'x.com',
+        'mobile.x.com',
+      ]);
+    }
+
+    return lista.toList();
+  }
 
   /// Obtiene la lista de sitios web y dominios bloqueados para el estudio
   static Future<List<String>> obtenerDominiosBloqueados() async {
@@ -63,7 +159,13 @@ class UsageService {
       final raw = await _almacen.read(key: _claveDominiosBloqueados);
       if (raw == null || raw.isEmpty) return List.from(dominiosPredeterminados);
       final List<dynamic> lista = jsonDecode(raw);
-      return lista.map((e) => e.toString().toLowerCase().trim()).toList();
+      final resultado = lista.map((e) => e.toString().toLowerCase().trim()).toList();
+      // Aseguramos que siempre contenga variantes móviles esenciales como m.youtube.com
+      if (!resultado.contains('m.youtube.com')) {
+        resultado.addAll(['m.youtube.com', 'youtu.be', 'm.tiktok.com', 'm.instagram.com']);
+        await guardarDominiosBloqueados(resultado);
+      }
+      return resultado;
     } catch (_) {
       return List.from(dominiosPredeterminados);
     }
@@ -74,34 +176,54 @@ class UsageService {
     await _almacen.write(key: _claveDominiosBloqueados, value: jsonEncode(dominios));
   }
 
-  /// Añade un nuevo dominio al bloqueador. Devuelve el dominio normalizado o null si no es válido.
+  /// Añade un nuevo dominio al bloqueador junto con todas sus variantes móviles (m., www., youtu.be, etc.)
   static Future<String?> agregarDominioBloqueado(String dominio) async {
-    var dom = dominio.toLowerCase().trim();
-    if (dom.startsWith('http://')) dom = dom.substring(7);
-    if (dom.startsWith('https://')) dom = dom.substring(8);
-    dom = dom.split('/')[0].split('?')[0].split('#')[0].trim();
-    if (dom.startsWith('www.')) dom = dom.substring(4);
-
-    if (dom.isEmpty || !dom.contains('.')) return null;
+    final base = normalizarDominioBase(dominio);
+    if (base.isEmpty || !base.contains('.')) return null;
 
     final actuales = await obtenerDominiosBloqueados();
-    if (!actuales.contains(dom)) {
-      actuales.add(dom);
+    final variantes = generarVariantesSubdominios(base);
+
+    bool modificado = false;
+    for (final v in variantes) {
+      if (!actuales.contains(v)) {
+        actuales.add(v);
+        modificado = true;
+      }
+    }
+    if (modificado) {
       await guardarDominiosBloqueados(actuales);
     }
-    return dom;
+    return base;
   }
 
-  /// Elimina un dominio de la lista negra
+  /// Elimina un dominio y todas sus variantes móviles de la lista negra
   static Future<void> eliminarDominioBloqueado(String dominio) async {
+    final base = normalizarDominioBase(dominio);
     final actuales = await obtenerDominiosBloqueados();
-    actuales.remove(dominio.toLowerCase().trim());
+    final variantes = generarVariantesSubdominios(base).toSet();
+    variantes.add(dominio.toLowerCase().trim());
+
+    actuales.removeWhere((d) => variantes.contains(d) || normalizarDominioBase(d) == base);
     await guardarDominiosBloqueados(actuales);
   }
 
-  /// Restablece los dominios a los predeterminados de fábrica
+  /// Restablece los dominios a los predeterminados de fábrica (incluyendo m.youtube.com y móviles)
   static Future<void> restablecerDominiosPredeterminados() async {
     await guardarDominiosBloqueados(dominiosPredeterminados);
+  }
+
+  /// Comprueba si una URL o host coincide con un dominio bloqueado (considerando subdominios como m., www., etc.)
+  static bool coincideConDominioBloqueado(String urlOTexto, List<String> dominiosBloqueados) {
+    final limpio = urlOTexto.toLowerCase().trim();
+    final base = normalizarDominioBase(limpio);
+    for (final d in dominiosBloqueados) {
+      final baseD = normalizarDominioBase(d);
+      if (limpio.contains(baseD) || base == baseD || limpio.endsWith('.$baseD')) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Abre cualquier URL en el navegador del teléfono (ej. para descargar APK o Aptoide).

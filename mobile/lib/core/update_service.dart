@@ -4,8 +4,8 @@ import 'tema.dart';
 import 'usage_service.dart';
 
 class UpdateService {
-  static const int codigoVersionActual = 6; // v1.1.5
-  static const String nombreVersionActual = '1.1.5';
+  static const int codigoVersionActual = 7; // v1.1.6
+  static const String nombreVersionActual = '1.1.6';
 
   static bool _dialogoMostrado = false;
 
@@ -194,10 +194,11 @@ class UpdateService {
                             ],
                           ),
                           const SizedBox(height: 8),
+                          _itemNovedad('Corrección de bloqueo web móvil: m.youtube.com, youtu.be, m.tiktok y redes'),
+                          _itemNovedad('Actualizador in-app directo con 1 toque sin salir de la app'),
                           _itemNovedad('Monetización: Plan Free (10 IA, 5 mapas) vs. InfocusMind Plus'),
                           _itemNovedad('Botones de pago oficiales: Tarjeta de Crédito, Google Pay y PayPal'),
                           _itemNovedad('Recuperación de contraseña con Bot de Seguridad y validación de correos'),
-                          _itemNovedad('Actualizador in-app directo con 1 toque sin salir de la app'),
                         ],
                       ),
                     ),

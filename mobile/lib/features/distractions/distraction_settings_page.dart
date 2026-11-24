@@ -468,13 +468,10 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                                   final txt = nuevoDominioCtrl.text.trim();
                                   if (txt.isEmpty) return;
                                   final messenger = ScaffoldMessenger.of(context);
-                                  final yaEstaba = dominios.contains(
-                                    txt.toLowerCase().replaceAll('http://', '').replaceAll('https://', '').split('/')[0].replaceAll('www.', ''),
-                                  );
                                   final domLimpio = await UsageService.agregarDominioBloqueado(txt);
                                   if (domLimpio == null) {
                                     messenger.showSnackBar(
-                                      const SnackBar(content: Text('Por favor ingresa un dominio válido (ej. roblox.com)')),
+                                      const SnackBar(content: Text('Por favor ingresa un dominio válido (ej. youtube.com o roblox.com)')),
                                     );
                                     return;
                                   }
@@ -484,9 +481,7 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                                   setState(() => dominios = actualizados);
                                   messenger.showSnackBar(
                                     SnackBar(
-                                      content: Text(yaEstaba
-                                          ? 'El dominio "$domLimpio" ya está en la lista'
-                                          : 'Dominio "$domLimpio" añadido a la lista'),
+                                      content: Text('Dominio "$domLimpio" y todas sus variantes móviles (m.$domLimpio, www, etc.) bloqueados exitosamente.'),
                                     ),
                                   );
                                 },

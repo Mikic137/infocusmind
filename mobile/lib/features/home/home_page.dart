@@ -1452,7 +1452,7 @@ class _AvisoMonetizacionBanner extends StatelessWidget {
                     Row(
                       children: [
                         const Text(
-                          'Monetización Implementada',
+                          'Actualización v1.1.6: Bloqueo Web & Plus',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1467,7 +1467,7 @@ class _AvisoMonetizacionBanner extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
-                            'v1.1.5',
+                            'v1.1.6',
                             style: TextStyle(
                               color: Colores.menta,
                               fontSize: 9,
@@ -1478,7 +1478,7 @@ class _AvisoMonetizacionBanner extends StatelessWidget {
                       ],
                     ),
                     const Text(
-                      'Plan Gratuito vs. InfocusMind Plus',
+                      'Corrección de m.youtube.com & Botones de Pago',
                       style: TextStyle(color: Colores.sol, fontSize: 11, fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -1495,7 +1495,7 @@ class _AvisoMonetizacionBanner extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            '• Plan Free: 10 acciones con IA y hasta 5 mapas de misiones con subtareas.\n• InfocusMind Plus: IA ilimitada, mapas infinitos y asistente continuo con botones de pago integrados (Tarjeta, Google Pay, PayPal).',
+            '• Bloqueo Web Móvil: Protección integral contra m.youtube.com, youtu.be, m.tiktok.com y redes en el navegador.\n• Plan Free vs. Plus: 10 acciones de IA y 5 mapas gratuitos, o Plus ilimitado con pasarela de pago (Tarjeta, Google Pay, PayPal).\n• Recuperación con Bot de Seguridad en el login con verificación en tiempo real.',
             style: TextStyle(color: Colores.luna, fontSize: 11, height: 1.4),
           ),
           const SizedBox(height: 12),

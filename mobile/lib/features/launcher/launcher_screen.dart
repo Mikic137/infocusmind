@@ -337,7 +337,35 @@ class _LauncherScreenState extends State<LauncherScreen> {
                                 borde: Colores.bordeBrillante,
                                 padding: const EdgeInsets.all(10),
                                 child: InkWell(
-                                  onTap: () => UsageService.abrirApp(a.package),
+                                  onTap: () {
+                                    final p = a.package.toLowerCase();
+                                    final esNavegador = p.contains('chrome') ||
+                                        p.contains('browser') ||
+                                        p.contains('firefox') ||
+                                        p.contains('opera') ||
+                                        p.contains('sbrowser');
+                                    if (esNavegador) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          backgroundColor: Colores.sol,
+                                          duration: Duration(seconds: 4),
+                                          content: Row(
+                                            children: [
+                                              Icon(Icons.shield_rounded, color: Colores.noche, size: 20),
+                                              SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  '🛡️ Modo Launcher: YouTube (m.youtube.com), redes y juegos web están restringidos para proteger tu estudio.',
+                                                  style: TextStyle(color: Colores.noche, fontWeight: FontWeight.bold, fontSize: 11),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    UsageService.abrirApp(a.package);
+                                  },
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     mainAxisAlignment:

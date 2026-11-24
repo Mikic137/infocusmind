@@ -480,8 +480,23 @@ void main() async {
     if (apkUrl != null && apkUrl.trim().isNotEmpty) {
       return Response.found(Uri.parse(apkUrl.trim()));
     }
-    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.4/InfocusMind_v1.1.4.apk'));
+    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.5/InfocusMind_v1.1.5.apk'));
   }
+
+  router.get('/download/InfocusMind_v1.1.5.apk', (Request request) async {
+    final localFile = File('public/InfocusMind_v1.1.5.apk');
+    if (await localFile.exists()) {
+      return Response.ok(
+        localFile.openRead(),
+        headers: {
+          'content-type': 'application/vnd.android.package-archive',
+          'content-disposition': 'attachment; filename="InfocusMind_v1.1.5.apk"',
+          'content-length': (await localFile.length()).toString(),
+        },
+      );
+    }
+    return _redirigirDescargaApk();
+  });
 
   router.get('/download/InfocusMind_v1.1.4.apk', (Request request) async {
     final localFile = File('public/InfocusMind_v1.1.4.apk');

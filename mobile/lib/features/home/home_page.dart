@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_service.dart';
 import '../../core/modelos.dart';
+import '../../core/subscription_service.dart';
 import '../../core/tema.dart';
 import '../../core/usage_service.dart';
 import '../../core/update_service.dart';
@@ -147,7 +148,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       await cargar();
       if (mounted) aviso('¡Misión agregada exitosamente!');
     } on DioException catch (e) {
-      if (mounted) aviso(mensajeError(e));
+      if (mounted) {
+        if (e.response?.statusCode == 403 ||
+            (e.response?.data is Map && e.response?.data['requires_plus'] == true)) {
+          final msg = e.response?.data is Map ? e.response?.data['error']?.toString() : null;
+          SubscriptionService.mostrarModalPlus(context, motivo: msg).then((_) => cargar());
+        } else {
+          aviso(mensajeError(e));
+        }
+      }
     } finally {
       if (mounted) setState(() => creando = false);
     }
@@ -744,6 +753,43 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ],
         ),
         actions: [
+          InkWell(
+            onTap: () => SubscriptionService.mostrarModalPlus(context).then((_) => cargar()),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colores.sol, Color(0xFFFF9100)],
+                ),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colores.sol.withValues(alpha: 0.4),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.workspace_premium_rounded, color: Colores.noche, size: 16),
+                  SizedBox(width: 4),
+                  Text(
+                    'PLUS',
+                    style: TextStyle(
+                      color: Colores.noche,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           IconButton(
             icon: Icon(Icons.palette_outlined, color: GestorTema.instancia.colorAcento),
             tooltip: 'Estilo Visual (Juvenil / Maduro / Cálido / Blanco y Negro)',

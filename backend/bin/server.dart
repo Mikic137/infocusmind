@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:bcrypt/bcrypt.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
@@ -84,6 +85,12 @@ Future<void> crearTablas() async {
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       ''');
+      try {
+        await conn.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_premium BOOLEAN NOT NULL DEFAULT false');
+        await conn.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_count INTEGER NOT NULL DEFAULT 0');
+      } catch (e) {
+        print('Aviso al verificar columnas de suscripción en users: $e');
+      }
       await conn.execute('''
         CREATE TABLE IF NOT EXISTS profiles (
           user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -706,12 +713,240 @@ void main() async {
     }
   });
 
+  // Almacén en memoria de códigos OTP temporales de recuperación de cuenta
+  final codigosRecuperacion = <String, Map<String, dynamic>>{};
+
+  // 1. Solicitud de recuperación y autenticación de existencia del correo
+  router.post('/auth/recover-request', (Request request) async {
+    try {
+      final data = jsonDecode(await request.readAsString());
+      final email = (data['email'] ?? '').toString().trim().toLowerCase();
+
+      if (!email.contains('@') || email.length < 5 || !email.contains('.')) {
+        return json(400, {'error': 'Por favor ingresa un correo electrónico con formato válido.'});
+      }
+
+      final conn = await abrirConexion();
+      try {
+        final r = await conn.execute(
+          Sql.named('SELECT id FROM users WHERE email = @email'),
+          parameters: {'email': email},
+        );
+
+        if (r.isEmpty) {
+          return json(404, {
+            'error': 'No encontramos ninguna cuenta registrada con este correo electrónico. Verifica que esté bien escrito o crea una cuenta nueva.'
+          });
+        }
+
+        final userId = r.first[0] as int;
+        // Generar código numérico seguro de 6 dígitos
+        final rnd = Random();
+        final code = (100000 + rnd.nextInt(900000)).toString();
+        final expiresAt = DateTime.now().add(const Duration(minutes: 15));
+
+        codigosRecuperacion[email] = {
+          'code': code,
+          'user_id': userId,
+          'expires_at': expiresAt,
+        };
+
+        print('🔑 [InfocusMind Security Bot] Código de recuperación generado para $email: $code (Expira en 15 min)');
+
+        return json(200, {
+          'success': true,
+          'message': 'Código de recuperación generado por el Bot Asistente.',
+          'email': email,
+          'code': code,
+          'expires_in_minutes': 15,
+        });
+      } finally {
+        await conn.close();
+      }
+    } catch (e) {
+      print('Error en /auth/recover-request: $e');
+      return json(500, {'error': 'Error procesando la solicitud de recuperación: $e'});
+    }
+  });
+
+  // 2. Verificación del código y actualización de la nueva contraseña
+  router.post('/auth/reset-password', (Request request) async {
+    try {
+      final data = jsonDecode(await request.readAsString());
+      final email = (data['email'] ?? '').toString().trim().toLowerCase();
+      final code = (data['code'] ?? '').toString().trim();
+      final newPassword = (data['new_password'] ?? '').toString();
+
+      if (email.isEmpty || code.isEmpty || newPassword.isEmpty) {
+        return json(400, {'error': 'Todos los campos son obligatorios.'});
+      }
+
+      final pending = codigosRecuperacion[email];
+      if (pending == null) {
+        return json(400, {
+          'error': 'No hay ninguna solicitud de recuperación activa para este correo o el código ya fue utilizado.'
+        });
+      }
+
+      final expiresAt = pending['expires_at'] as DateTime;
+      if (DateTime.now().isAfter(expiresAt)) {
+        codigosRecuperacion.remove(email);
+        return json(400, {
+          'error': 'El código de seguridad ha expirado. Por favor solicita uno nuevo.'
+        });
+      }
+
+      final expectedCode = pending['code'] as String;
+      if (code != expectedCode) {
+        return json(400, {
+          'error': 'El código de seguridad ingresado es incorrecto. Verifica el código generado por el bot.'
+        });
+      }
+
+      // Validar robustez de la nueva contraseña
+      if (newPassword.length < 8) {
+        return json(400, {'error': 'La nueva contraseña debe tener al menos 8 caracteres.'});
+      }
+      final debiles = {
+        '12345678', '123456789', '1234567890', 'password', 'contraseña',
+        'qwertyuiop', '11111111', '87654321', 'abcdefgh', 'infocusmind'
+      };
+      if (debiles.contains(newPassword.toLowerCase())) {
+        return json(400, {
+          'error': 'La contraseña es muy común. Por favor elige una contraseña más segura.'
+        });
+      }
+      if (!newPassword.contains(RegExp(r'[A-Z]')) || !newPassword.contains(RegExp(r'[0-9]'))) {
+        return json(400, {
+          'error': 'La contraseña debe incluir al menos una letra mayúscula y un número.'
+        });
+      }
+
+      final newHash = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+      final conn = await abrirConexion();
+      try {
+        await conn.execute(
+          Sql.named('UPDATE users SET password_hash = @hash WHERE email = @email'),
+          parameters: {'hash': newHash, 'email': email},
+        );
+
+        // Remover código ya consumido
+        codigosRecuperacion.remove(email);
+
+        print('✅ [InfocusMind Security Bot] Contraseña actualizada con éxito para el usuario $email');
+
+        return json(200, {
+          'success': true,
+          'message': '¡Tu contraseña ha sido actualizada con éxito! Ya puedes iniciar sesión.'
+        });
+      } finally {
+        await conn.close();
+      }
+    } catch (e) {
+      print('Error en /auth/reset-password: $e');
+      return json(500, {'error': 'Error actualizando la contraseña: $e'});
+    }
+  });
+
+  // --- MONETIZACIÓN Y SUSCRIPCIÓN PLUS ---
+  router.get('/user/subscription', (Request request) async {
+    final userId = usuarioDe(request);
+    if (userId == null) return json(401, {'error': 'Sesión no válida'});
+    try {
+      final conn = await abrirConexion();
+      try {
+        final ru = await conn.execute(
+          Sql.named('SELECT is_premium, ai_count FROM users WHERE id = @id'),
+          parameters: {'id': userId},
+        );
+        final isPremium = ru.isNotEmpty ? ((ru.first[0] as bool?) ?? false) : false;
+        final aiCount = ru.isNotEmpty ? ((ru.first[1] as int?) ?? 0) : 0;
+
+        final rt = await conn.execute(
+          Sql.named('SELECT COUNT(*) FROM tasks WHERE user_id = @id'),
+          parameters: {'id': userId},
+        );
+        final tasksCount = rt.isNotEmpty ? ((rt.first[0] as int?) ?? 0) : 0;
+
+        return json(200, {
+          'is_premium': isPremium,
+          'ai_count': aiCount,
+          'ai_limit': 10,
+          'tasks_count': tasksCount,
+          'tasks_limit': 5,
+          'can_use_ai': isPremium || aiCount < 10,
+          'can_create_task': isPremium || tasksCount < 5,
+        });
+      } finally {
+        await conn.close();
+      }
+    } catch (e) {
+      print('Error en GET /user/subscription: $e');
+      return json(500, {'error': 'Error consultando suscripción: $e'});
+    }
+  });
+
+  router.post('/user/upgrade-plus', (Request request) async {
+    final userId = usuarioDe(request);
+    if (userId == null) return json(401, {'error': 'Sesión no válida'});
+    try {
+      final data = jsonDecode(await request.readAsString());
+      final metodo = (data['payment_method'] ?? 'Tarjeta').toString();
+      final plan = (data['plan'] ?? 'Plus Mensual').toString();
+
+      final conn = await abrirConexion();
+      try {
+        await conn.execute(
+          Sql.named('UPDATE users SET is_premium = true WHERE id = @id'),
+          parameters: {'id': userId},
+        );
+        print('Usuario $userId actualizado a InfocusMind Plus (Método: $metodo, Plan: $plan)');
+        return json(200, {
+          'success': true,
+          'message': '¡Pago procesado con éxito! Ahora eres miembro InfocusMind Plus con IA y mapas ilimitados.',
+          'is_premium': true,
+        });
+      } finally {
+        await conn.close();
+      }
+    } catch (e) {
+      print('Error en POST /user/upgrade-plus: $e');
+      return json(500, {'error': 'Error procesando la actualización: $e'});
+    }
+  });
+
   router.post('/onboarding/chat', (Request request) async {
     final userId = usuarioDe(request);
     if (userId == null) return json(401, {'error': 'Sesión no válida'});
     if (superaLimiteIA(userId)) {
       return json(429, {'error': 'Demasiadas peticiones, intenta más tarde'});
     }
+
+    final connCheck = await abrirConexion();
+    bool isPremium = false;
+    int aiCount = 0;
+    try {
+      final ru = await connCheck.execute(
+        Sql.named('SELECT is_premium, ai_count FROM users WHERE id = @id'),
+        parameters: {'id': userId},
+      );
+      if (ru.isNotEmpty) {
+        isPremium = (ru.first[0] as bool?) ?? false;
+        aiCount = (ru.first[1] as int?) ?? 0;
+      }
+    } finally {
+      await connCheck.close();
+    }
+
+    if (!isPremium && aiCount >= 10) {
+      return json(403, {
+        'error': 'Has alcanzado el límite gratuito de 10 acciones con Inteligencia Artificial. Actualiza a InfocusMind Plus para continuar conversando sin límites.',
+        'requires_plus': true,
+        'ai_count': aiCount,
+        'ai_limit': 10,
+      });
+    }
+
     try {
       final data = jsonDecode(await request.readAsString());
       var crudos = (data['messages'] as List?) ?? [];
@@ -741,9 +976,15 @@ void main() async {
       if (reply.isEmpty) reply = 'Cuéntame un poco más sobre ti.';
       final terminado = resp['done'] == true && resp['profile'] is Map;
 
-      if (terminado) {
-        final conn = await abrirConexion();
-        try {
+      final conn = await abrirConexion();
+      try {
+        if (!isPremium) {
+          await conn.execute(
+            Sql.named('UPDATE users SET ai_count = ai_count + 1 WHERE id = @id'),
+            parameters: {'id': userId},
+          );
+        }
+        if (terminado) {
           await conn.execute(
             Sql.named(
               'INSERT INTO profiles (user_id, data) VALUES (@id, @data) '
@@ -756,9 +997,9 @@ void main() async {
                   limpiarPerfil(Map<String, dynamic>.from(resp['profile']))),
             },
           );
-        } finally {
-          await conn.close();
         }
+      } finally {
+        await conn.close();
       }
       return json(200, {'reply': reply, 'done': terminado});
     } catch (e) {
@@ -794,6 +1035,47 @@ void main() async {
     if (superaLimiteIA(userId)) {
       return json(429, {'error': 'Demasiadas peticiones, intenta más tarde'});
     }
+
+    final connCheck = await abrirConexion();
+    bool isPremium = false;
+    int aiCount = 0;
+    int tasksCount = 0;
+    try {
+      final ru = await connCheck.execute(
+        Sql.named('SELECT is_premium, ai_count FROM users WHERE id = @id'),
+        parameters: {'id': userId},
+      );
+      if (ru.isNotEmpty) {
+        isPremium = (ru.first[0] as bool?) ?? false;
+        aiCount = (ru.first[1] as int?) ?? 0;
+      }
+      final rt = await connCheck.execute(
+        Sql.named('SELECT COUNT(*) FROM tasks WHERE user_id = @id'),
+        parameters: {'id': userId},
+      );
+      tasksCount = rt.isNotEmpty ? ((rt.first[0] as int?) ?? 0) : 0;
+    } finally {
+      await connCheck.close();
+    }
+
+    if (!isPremium && aiCount >= 10) {
+      return json(403, {
+        'error': 'Has alcanzado el límite gratuito de 10 acciones con Inteligencia Artificial. Pasa a InfocusMind Plus para dividir misiones infinitas.',
+        'requires_plus': true,
+        'ai_count': aiCount,
+        'ai_limit': 10,
+      });
+    }
+
+    if (!isPremium && tasksCount >= 5) {
+      return json(403, {
+        'error': 'Has alcanzado el límite de 5 mapas de misiones con subtareas en el plan gratuito. Pasa a InfocusMind Plus para mapas ilimitados.',
+        'requires_plus': true,
+        'tasks_count': tasksCount,
+        'tasks_limit': 5,
+      });
+    }
+
     try {
       final data = jsonDecode(await request.readAsString());
       var titulo = (data['title'] ?? '').toString().trim();
@@ -860,6 +1142,12 @@ void main() async {
         }
 
         final taskId = await conn.runTx((tx) async {
+          if (!isPremium) {
+            await tx.execute(
+              Sql.named('UPDATE users SET ai_count = ai_count + 1 WHERE id = @id'),
+              parameters: {'id': userId},
+            );
+          }
           final r = await tx.execute(
             Sql.named(
               'INSERT INTO tasks (user_id, title, details, scheduled_date) '
@@ -902,6 +1190,36 @@ void main() async {
   router.post('/tasks/manual', (Request request) async {
     final userId = usuarioDe(request);
     if (userId == null) return json(401, {'error': 'Sesión no válida'});
+
+    final connCheck = await abrirConexion();
+    bool isPremium = false;
+    int tasksCount = 0;
+    try {
+      final ru = await connCheck.execute(
+        Sql.named('SELECT is_premium FROM users WHERE id = @id'),
+        parameters: {'id': userId},
+      );
+      if (ru.isNotEmpty) {
+        isPremium = (ru.first[0] as bool?) ?? false;
+      }
+      final rt = await connCheck.execute(
+        Sql.named('SELECT COUNT(*) FROM tasks WHERE user_id = @id'),
+        parameters: {'id': userId},
+      );
+      tasksCount = rt.isNotEmpty ? ((rt.first[0] as int?) ?? 0) : 0;
+    } finally {
+      await connCheck.close();
+    }
+
+    if (!isPremium && tasksCount >= 5) {
+      return json(403, {
+        'error': 'Has alcanzado el límite de 5 mapas de misiones en la versión gratuita. Actualiza a InfocusMind Plus para crear misiones ilimitadas.',
+        'requires_plus': true,
+        'tasks_count': tasksCount,
+        'tasks_limit': 5,
+      });
+    }
+
     try {
       final data = jsonDecode(await request.readAsString());
       var titulo = (data['title'] ?? '').toString().trim();

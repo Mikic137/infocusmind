@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/modelos.dart';
+import '../../core/subscription_service.dart';
 import '../../core/tema.dart';
 import '../../core/usage_service.dart';
 
@@ -21,6 +22,7 @@ class AssistantView extends StatefulWidget {
 
 class _AssistantViewState extends State<AssistantView> {
   int subModo = 0; // 0 = Dividir con IA, 1 = Conozcámonos / Aprender de ti
+  EstadoSuscripcion? suscripcion;
 
   // Estado para Dividir con IA
   final tituloCtrl = TextEditingController();
@@ -42,6 +44,13 @@ class _AssistantViewState extends State<AssistantView> {
   void initState() {
     super.initState();
     fechaSeleccionada = DateTime.now();
+    _actualizarSuscripcion();
+  }
+
+  void _actualizarSuscripcion() {
+    SubscriptionService.obtenerEstado().then((st) {
+      if (mounted) setState(() => suscripcion = st);
+    });
   }
 
   @override
@@ -108,6 +117,23 @@ class _AssistantViewState extends State<AssistantView> {
       return;
     }
 
+    if (suscripcion != null && !suscripcion!.isPremium) {
+      if (suscripcion!.aiCount >= 10) {
+        SubscriptionService.mostrarModalPlus(
+          context,
+          motivo: 'Has alcanzado el límite gratuito de 10 acciones con IA.',
+        ).then((_) => _actualizarSuscripcion());
+        return;
+      }
+      if (suscripcion!.tasksCount >= 5) {
+        SubscriptionService.mostrarModalPlus(
+          context,
+          motivo: 'Has alcanzado el límite de 5 mapas de misiones con subtareas.',
+        ).then((_) => _actualizarSuscripcion());
+        return;
+      }
+    }
+
     setState(() {
       dividiendo = true;
       errorDivision = null;
@@ -134,6 +160,7 @@ class _AssistantViewState extends State<AssistantView> {
         exitoDivision = '¡Misión dividida exitosamente por la IA!';
       });
 
+      _actualizarSuscripcion();
       widget.onMisionCreada?.call();
 
       if (r.data['adjusted'] == true) {
@@ -146,6 +173,11 @@ class _AssistantViewState extends State<AssistantView> {
         dividiendo = false;
         errorDivision = mensajeError(e);
       });
+      if (e.response?.statusCode == 403 ||
+          (e.response?.data is Map && e.response?.data['requires_plus'] == true)) {
+        final msg = e.response?.data is Map ? e.response?.data['error']?.toString() : null;
+        SubscriptionService.mostrarModalPlus(context, motivo: msg).then((_) => _actualizarSuscripcion());
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -176,6 +208,17 @@ class _AssistantViewState extends State<AssistantView> {
   }
 
   Future<void> pedirRespuestaChat() async {
+    if (suscripcion != null && !suscripcion!.isPremium && suscripcion!.aiCount >= 10) {
+      SubscriptionService.mostrarModalPlus(
+        context,
+        motivo: 'Has alcanzado tus 10 acciones con IA en la versión gratuita.',
+      ).then((_) => _actualizarSuscripcion());
+      setState(() {
+        errorChat = 'Límite de 10 acciones con IA alcanzado. Pasa a Plus.';
+      });
+      return;
+    }
+
     setState(() {
       esperandoChat = true;
       errorChat = null;
@@ -193,12 +236,18 @@ class _AssistantViewState extends State<AssistantView> {
         mensajes.add(_MensajeChat('model', r.data['reply'].toString()));
         esperandoChat = false;
       });
+      _actualizarSuscripcion();
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() {
         errorChat = mensajeError(e);
         esperandoChat = false;
       });
+      if (e.response?.statusCode == 403 ||
+          (e.response?.data is Map && e.response?.data['requires_plus'] == true)) {
+        final msg = e.response?.data is Map ? e.response?.data['error']?.toString() : null;
+        SubscriptionService.mostrarModalPlus(context, motivo: msg).then((_) => _actualizarSuscripcion());
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -621,6 +670,76 @@ class _AssistantViewState extends State<AssistantView> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Banner de Suscripción (Límites IA y Mapas / Botón Plus)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+          child: InkWell(
+            onTap: () => SubscriptionService.mostrarModalPlus(context).then((_) => _actualizarSuscripcion()),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: (suscripcion?.isPremium == true)
+                    ? Colores.sol.withValues(alpha: 0.15)
+                    : Colores.nocheClara,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: (suscripcion?.isPremium == true) ? Colores.sol : Colores.bordeBrillante,
+                  width: 1.2,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    suscripcion?.isPremium == true
+                        ? Icons.workspace_premium_rounded
+                        : Icons.bolt_rounded,
+                    color: (suscripcion?.isPremium == true) ? Colores.sol : Colores.cian,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: (suscripcion?.isPremium == true)
+                        ? const Text(
+                            '👑 InfocusMind Plus Activo · IA y Mapas Ilimitados',
+                            style: TextStyle(
+                              color: Colores.sol,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          )
+                        : Text(
+                            'Plan Free: ${suscripcion?.aiRestantes ?? 10}/10 IA · ${suscripcion?.tasksRestantes ?? 5}/5 mapas',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: (suscripcion?.isPremium == true)
+                          ? Colores.sol.withValues(alpha: 0.2)
+                          : Colores.cian.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      (suscripcion?.isPremium == true) ? 'PRO' : '👑 MEJORAR',
+                      style: TextStyle(
+                        color: (suscripcion?.isPremium == true) ? Colores.sol : Colores.cian,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
         // Selector de sub-modo Cyberpunk
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),

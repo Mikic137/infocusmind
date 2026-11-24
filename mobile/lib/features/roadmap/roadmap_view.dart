@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/modelos.dart';
+import '../../core/subscription_service.dart';
 import '../../core/tema.dart';
 
 const _xs = [0.5, 0.2, 0.5, 0.8];
@@ -36,9 +37,50 @@ class RoadmapView extends StatelessWidget {
     final pendientes = tareas.where((t) => !t.completa).toList();
     final completas = tareas.where((t) => t.completa).toList();
     final orden = [...pendientes, ...completas];
+    final estado = SubscriptionService.ultimoEstado;
+    final esFreeYAlcanzoLimite = estado != null && !estado.isPremium && tareas.length >= 5;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
       children: [
+        if (esFreeYAlcanzoLimite)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: InkWell(
+              onTap: () => SubscriptionService.mostrarModalPlus(context),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colores.sol.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colores.sol, width: 1.5),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.workspace_premium_rounded, color: Colores.sol, size: 24),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Has alcanzado el límite de 5 mapas (Plan Free)',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                          Text(
+                            'Desbloquea mapas de guías y subtareas ilimitados con InfocusMind Plus.',
+                            style: TextStyle(color: Colores.sol, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios_rounded, color: Colores.sol, size: 14),
+                  ],
+                ),
+              ),
+            ),
+          ),
         for (final t in orden) _Zona(tarea: t, onIniciar: onIniciar),
       ],
     );

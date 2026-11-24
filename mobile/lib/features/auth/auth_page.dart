@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_service.dart';
 import '../../core/destino.dart';
@@ -243,6 +244,42 @@ class _AuthPageState extends State<AuthPage> {
             child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _abrirDialogoRecuperarCuenta() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _DialogoRecuperarCuenta(
+        correoInicial: emailController.text.trim(),
+        onPasswordRestablecida: (correo, nuevaPass) {
+          setState(() {
+            emailController.text = correo;
+            passwordController.text = nuevaPass;
+            esRegistro = false;
+            error = null;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colores.menta,
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colores.noche),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '¡Contraseña actualizada exitosamente! Inicia sesión con tus nuevas credenciales.',
+                      style: TextStyle(color: Colores.noche, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        },
       ),
     );
   }
@@ -528,6 +565,31 @@ class _AuthPageState extends State<AuthPage> {
                       ),
                     ),
                   ),
+
+                  // Enlace para recuperar cuenta si es modo login
+                  if (!esRegistro) ...[
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: _abrirDialogoRecuperarCuenta,
+                        icon: const Icon(Icons.lock_reset_rounded, size: 15, color: Colores.cian),
+                        label: const Text(
+                          '¿Olvidaste tu contraseña? Recuperar',
+                          style: TextStyle(
+                            color: Colores.cian,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
 
                   // Medidor de fortaleza de contraseña si es registro
                   if (esRegistro && passwordController.text.isNotEmpty) ...[
@@ -916,6 +978,711 @@ class _BeneficioItem extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Diálogo profesional con Bot Asistente de Seguridad para recuperar cuenta y verificar existencia de correo
+class _DialogoRecuperarCuenta extends StatefulWidget {
+  final String correoInicial;
+  final void Function(String correo, String nuevaPassword) onPasswordRestablecida;
+
+  const _DialogoRecuperarCuenta({
+    required this.correoInicial,
+    required this.onPasswordRestablecida,
+  });
+
+  @override
+  State<_DialogoRecuperarCuenta> createState() => _DialogoRecuperarCuentaState();
+}
+
+class _DialogoRecuperarCuentaState extends State<_DialogoRecuperarCuenta> {
+  int _paso = 1; // 1: Email, 2: OTP, 3: Nueva Password, 4: Éxito
+  late final TextEditingController _correoCtrl;
+  final _codigoCtrl = TextEditingController();
+  final _nuevaPassCtrl = TextEditingController();
+  final _confirmPassCtrl = TextEditingController();
+
+  bool _cargando = false;
+  String? _error;
+  String _codigoGenerado = '';
+  bool _verNuevaPass = false;
+  bool _verConfirmPass = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _correoCtrl = TextEditingController(text: widget.correoInicial);
+  }
+
+  @override
+  void dispose() {
+    _correoCtrl.dispose();
+    _codigoCtrl.dispose();
+    _nuevaPassCtrl.dispose();
+    _confirmPassCtrl.dispose();
+    super.dispose();
+  }
+
+  // Criterios de seguridad
+  bool get _tieneMinimo8 => _nuevaPassCtrl.text.length >= 8;
+  bool get _tieneMayuscula => _nuevaPassCtrl.text.contains(RegExp(r'[A-Z]'));
+  bool get _tieneNumero => _nuevaPassCtrl.text.contains(RegExp(r'[0-9]'));
+  bool get _noEsComun {
+    final t = _nuevaPassCtrl.text.toLowerCase();
+    const faciles = ['12345678', 'password', 'contraseña', 'qwerty123', 'admin123', '123456789'];
+    return !faciles.any((f) => t.contains(f));
+  }
+
+  double get _fortalezaScore {
+    int p = 0;
+    if (_tieneMinimo8) p++;
+    if (_tieneMayuscula) p++;
+    if (_tieneNumero) p++;
+    if (_noEsComun && _nuevaPassCtrl.text.isNotEmpty) p++;
+    return p / 4.0;
+  }
+
+  Color get _fortalezaColor {
+    final s = _fortalezaScore;
+    if (s <= 0.25) return Colores.coral;
+    if (s <= 0.5) return const Color(0xFFFF9800);
+    if (s <= 0.75) return Colores.sol;
+    return Colores.menta;
+  }
+
+  Future<void> _solicitarCodigo() async {
+    final email = _correoCtrl.text.trim();
+    if (!email.contains('@') || !email.contains('.') || email.length < 5) {
+      setState(() => _error = 'Por favor ingresa un correo electrónico válido.');
+      return;
+    }
+
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
+
+    final res = await AuthService.solicitarRecuperacion(email);
+    if (!mounted) return;
+
+    if (res['success'] == true) {
+      setState(() {
+        _codigoGenerado = res['code']?.toString() ?? '';
+        _cargando = false;
+        _error = null;
+        _paso = 2;
+      });
+    } else {
+      setState(() {
+        _cargando = false;
+        _error = res['error']?.toString() ?? 'Error al verificar la cuenta.';
+      });
+    }
+  }
+
+  void _validarCodigo() {
+    final ing = _codigoCtrl.text.trim();
+    if (ing.isEmpty) {
+      setState(() => _error = 'Ingresa el código OTP de 6 dígitos que te proporcionó el Bot.');
+      return;
+    }
+    if (ing != _codigoGenerado) {
+      setState(() => _error = 'El código ingresado es incorrecto. Verifica que coincida exactamente.');
+      return;
+    }
+    setState(() {
+      _error = null;
+      _paso = 3;
+    });
+  }
+
+  Future<void> _restablecerPassword() async {
+    final p1 = _nuevaPassCtrl.text;
+    final p2 = _confirmPassCtrl.text;
+
+    if (p1.isEmpty) {
+      setState(() => _error = 'Ingresa tu nueva contraseña.');
+      return;
+    }
+    if (p1 != p2) {
+      setState(() => _error = 'Las contraseñas no coinciden.');
+      return;
+    }
+    if (!_tieneMinimo8 || !_tieneMayuscula || !_tieneNumero || !_noEsComun) {
+      setState(() => _error = 'La contraseña no cumple los requisitos mínimos de seguridad.');
+      return;
+    }
+
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
+
+    final fallo = await AuthService.cambiarPasswordConCodigo(
+      email: _correoCtrl.text.trim(),
+      code: _codigoCtrl.text.trim(),
+      newPassword: p1,
+    );
+    if (!mounted) return;
+
+    if (fallo == null) {
+      setState(() {
+        _cargando = false;
+        _error = null;
+        _paso = 4;
+      });
+    } else {
+      setState(() {
+        _cargando = false;
+        _error = fallo;
+      });
+    }
+  }
+
+  Widget _buildStepPill(int pasoNumero, String etiqueta) {
+    final activo = _paso == pasoNumero;
+    final completado = _paso > pasoNumero;
+
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: completado
+                  ? Colores.menta
+                  : activo
+                      ? Colores.cian
+                      : Colores.borde,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            etiqueta,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: activo ? FontWeight.bold : FontWeight.normal,
+              color: completado
+                  ? Colores.menta
+                  : activo
+                      ? Colores.cian
+                      : Colores.tenue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCheck(String titulo, bool ok) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(
+            ok ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            color: ok ? Colores.menta : Colores.tenue.withValues(alpha: 0.5),
+            size: 14,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            titulo,
+            style: TextStyle(
+              fontSize: 11,
+              color: ok ? Colors.white : Colores.tenue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colores.nocheClara,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Colores.borde, width: 1.5),
+      ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Encabezado con Bot
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colores.cian.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colores.cian, width: 1.5),
+                    ),
+                    child: const Icon(Icons.smart_toy_rounded, color: Colores.cian, size: 26),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Bot de Seguridad InfocusMind',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Recuperación Segura de Cuenta',
+                          style: TextStyle(color: Colores.tenue, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded, color: Colores.tenue),
+                    tooltip: 'Cerrar',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Barra de Pasos
+              Row(
+                children: [
+                  _buildStepPill(1, '1. Correo'),
+                  const SizedBox(width: 6),
+                  _buildStepPill(2, '2. Bot OTP'),
+                  const SizedBox(width: 6),
+                  _buildStepPill(3, '3. Clave'),
+                  const SizedBox(width: 6),
+                  _buildStepPill(4, '4. Listo'),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Banner de Error si existe
+              if (_error != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colores.coral.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colores.coral.withValues(alpha: 0.5)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colores.coral, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Color(0xFFFFB3B3), fontSize: 12, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // CUERPO SEGÚN EL PASO
+              if (_paso == 1) ...[
+                // Tarjeta Bot Paso 1
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colores.noche,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colores.borde),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.support_agent_rounded, color: Colores.cian, size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Hola, soy el asistente de seguridad. Escribe tu correo registrado para verificar en tiempo real si tu cuenta existe en la base de datos.',
+                          style: TextStyle(color: Colores.luna.withValues(alpha: 0.9), fontSize: 12, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                TextField(
+                  controller: _correoCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  autofocus: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Correo Electrónico Registrado',
+                    prefixIcon: const Icon(Icons.email_outlined, color: Colores.cian),
+                    filled: true,
+                    fillColor: Colores.noche,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colores.borde),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                SizedBox(
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colores.cian,
+                      foregroundColor: Colores.noche,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: _cargando ? null : _solicitarCodigo,
+                    icon: _cargando
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colores.noche),
+                          )
+                        : const Icon(Icons.verified_user_rounded, size: 20),
+                    label: Text(
+                      _cargando ? 'Verificando con la base de datos...' : 'Verificar y Enviar Código',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ] else if (_paso == 2) ...[
+                // Paso 2: Código OTP generado por el Bot
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colores.noche,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colores.menta.withValues(alpha: 0.4)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Colores.menta, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '¡Cuenta verificada! (${_correoCtrl.text.trim()})',
+                              style: const TextStyle(color: Colores.menta, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '🤖 El Bot de Seguridad ha generado tu código de verificación OTP (válido por 15 minutos):',
+                        style: TextStyle(color: Colores.luna, fontSize: 12, height: 1.3),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colores.nocheClara,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colores.sol, width: 1.5),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _codigoGenerado,
+                                style: const TextStyle(
+                                  color: Colores.sol,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 6,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                icon: const Icon(Icons.copy_rounded, color: Colores.sol, size: 20),
+                                tooltip: 'Copiar código',
+                                onPressed: () {
+                                  Clipboard.setData(ClipboardData(text: _codigoGenerado));
+                                  _codigoCtrl.text = _codigoGenerado;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('¡Código copiado al portapapeles y pegado!'),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                TextField(
+                  controller: _codigoCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
+                  ],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 8,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Ingresa el código OTP de 6 dígitos',
+                    hintText: '000000',
+                    prefixIcon: const Icon(Icons.pin_rounded, color: Colores.cian),
+                    suffixIcon: TextButton(
+                      onPressed: () {
+                        _codigoCtrl.text = _codigoGenerado;
+                      },
+                      child: const Text('Autocompletar', style: TextStyle(color: Colores.cian, fontSize: 11)),
+                    ),
+                    filled: true,
+                    fillColor: Colores.noche,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colores.borde),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => setState(() => _paso = 1),
+                      child: const Text('Atrás', style: TextStyle(color: Colores.tenue)),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colores.cian,
+                            foregroundColor: Colores.noche,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: _validarCodigo,
+                          icon: const Icon(Icons.check_rounded, size: 20),
+                          label: const Text(
+                            'Confirmar Código',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else if (_paso == 3) ...[
+                // Paso 3: Nueva Contraseña
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colores.noche,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colores.borde),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.shield_rounded, color: Colores.menta, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Código validado. Ahora define tu nueva contraseña segura:',
+                          style: TextStyle(color: Colores.luna, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                TextField(
+                  controller: _nuevaPassCtrl,
+                  obscureText: !_verNuevaPass,
+                  onChanged: (_) => setState(() {}),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Nueva Contraseña',
+                    prefixIcon: const Icon(Icons.lock_outline, color: Colores.cian),
+                    suffixIcon: IconButton(
+                      icon: Icon(_verNuevaPass ? Icons.visibility_off : Icons.visibility, color: Colores.tenue),
+                      onPressed: () => setState(() => _verNuevaPass = !_verNuevaPass),
+                    ),
+                    filled: true,
+                    fillColor: Colores.noche,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colores.borde),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Medidor
+                if (_nuevaPassCtrl.text.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: _fortalezaScore,
+                      backgroundColor: Colores.borde,
+                      valueColor: AlwaysStoppedAnimation<Color>(_fortalezaColor),
+                      minHeight: 5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colores.noche,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colores.borde),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildCheck('Mínimo 8 caracteres', _tieneMinimo8),
+                        _buildCheck('Al menos una mayúscula (A-Z)', _tieneMayuscula),
+                        _buildCheck('Al menos un número (0-9)', _tieneNumero),
+                        _buildCheck('Sin palabras o secuencias obvias', _noEsComun),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+
+                TextField(
+                  controller: _confirmPassCtrl,
+                  obscureText: !_verConfirmPass,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Confirmar Nueva Contraseña',
+                    prefixIcon: const Icon(Icons.lock_reset_rounded, color: Colores.menta),
+                    suffixIcon: IconButton(
+                      icon: Icon(_verConfirmPass ? Icons.visibility_off : Icons.visibility, color: Colores.tenue),
+                      onPressed: () => setState(() => _verConfirmPass = !_verConfirmPass),
+                    ),
+                    filled: true,
+                    fillColor: Colores.noche,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colores.borde),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                SizedBox(
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colores.menta,
+                      foregroundColor: Colores.noche,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: _cargando ? null : _restablecerPassword,
+                    icon: _cargando
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colores.noche),
+                          )
+                        : const Icon(Icons.save_rounded, size: 20),
+                    label: Text(
+                      _cargando ? 'Actualizando contraseña...' : 'Guardar y Restablecer',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ] else if (_paso == 4) ...[
+                // Paso 4: Éxito total
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colores.noche,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colores.menta, width: 1.5),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colores.menta.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.task_alt_rounded, color: Colores.menta, size: 48),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        '¡Restablecimiento Exitoso!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'El Bot de Seguridad ha actualizado tu contraseña en los servidores encriptados de InfocusMind.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colores.luna.withValues(alpha: 0.9), fontSize: 12, height: 1.4),
+                      ),
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colores.sol,
+                            foregroundColor: Colores.noche,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            widget.onPasswordRestablecida(_correoCtrl.text.trim(), _nuevaPassCtrl.text);
+                          },
+                          icon: const Icon(Icons.login_rounded, size: 20),
+                          label: const Text(
+                            'Iniciar Sesión con Nuevas Credenciales',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

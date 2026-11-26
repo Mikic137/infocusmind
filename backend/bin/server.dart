@@ -566,7 +566,7 @@ void main() async {
   });
 
   router.get('/download/InfocusMind_v1.1.2.apk', (Request request) async {
-    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.2/InfocusMind_v1.1.2.apk'));
+    return _redirigirDescargaApk();
   });
 
   router.get('/download/InfocusMind.apk', (Request request) async {

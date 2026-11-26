@@ -440,11 +440,11 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
               ),
               const SizedBox(height: 8),
 
-              // Botón 1: PayPal Sandbox (Automático & Verificado)
+              // Botón 1: PayPal Oficial (Automático & Verificado)
               _BotonPago(
                 icono: Icons.verified_user_rounded,
-                texto: 'PayPal Checkout Sandbox',
-                subtexto: 'Verificación real con Smart Buttons y captura automática',
+                texto: 'PayPal Oficial (Smart Checkout)',
+                subtexto: 'Verificación bancaria automática en 1 toque',
                 colorFondo: const Color(0xFF003087),
                 colorBorde: Colores.sol,
                 cargando: _procesando && _metodoSeleccionado == 'PayPal Sandbox' && !_esperandoVerificacionSandbox,
@@ -465,7 +465,7 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
                 onTap: _iniciarPagoPaypalDirecto,
               ),
 
-              // Tarjeta 1: Verificación real para PayPal Sandbox
+              // Tarjeta 1: Verificación real para PayPal Oficial
               if (_esperandoVerificacionSandbox) ...[
                 const SizedBox(height: 10),
                 Container(
@@ -484,7 +484,7 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Checkout abierto en PayPal Sandbox (${_planSeleccionado == 0 ? '\$3.99' : '\$14.99'} USD)',
+                              'Checkout abierto en PayPal Oficial (${_planSeleccionado == 0 ? '\$3.99' : '\$14.99'} USD)',
                               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                           ),
@@ -492,8 +492,8 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        '1. Aprueba el pago en la ventana de PayPal Sandbox en tu navegador.\n'
-                        '2. Cuando termine, toca el botón de abajo para verificar la activación real con el servidor:',
+                        '1. Completa el pago en la ventana segura de PayPal con tu cuenta o tarjeta.\n'
+                        '2. Al terminar, toca el botón de abajo para verificar la activación oficial con el servidor:',
                         style: TextStyle(color: Colores.luna, fontSize: 11, height: 1.3),
                       ),
                       const SizedBox(height: 10),
@@ -510,7 +510,7 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
                               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colores.noche))
                               : const Icon(Icons.sync_rounded, size: 20),
                           label: Text(
-                            _procesando ? 'VERIFICANDO EN SERVIDOR...' : 'COMPROBAR ACTIVACIÓN REAL',
+                            _procesando ? 'VERIFICANDO EN SERVIDOR...' : 'COMPROBAR ACTIVACIÓN OFICIAL',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                           ),
                         ),

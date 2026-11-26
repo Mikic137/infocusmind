@@ -106,8 +106,7 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
   bool _procesando = false;
   String? _metodoSeleccionado;
   bool _exito = false;
-  bool _esperandoConfirmacionPayPal = false;
-  bool _esperandoVerificacionSandbox = false;
+  bool _esperandoVerificacionPayPal = false;
 
   final List<Map<String, dynamic>> planes = [
     {
@@ -126,13 +125,13 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
     },
   ];
 
-  Future<void> _iniciarPagoPaypalSandbox() async {
+  Future<void> _iniciarPagoPaypalOficial() async {
     final plan = planes[_planSeleccionado]['titulo'] as String;
     final monto = _planSeleccionado == 0 ? '3.99' : '14.99';
 
     setState(() {
       _procesando = true;
-      _metodoSeleccionado = 'PayPal Sandbox';
+      _metodoSeleccionado = 'PayPal Oficial';
     });
 
     try {
@@ -146,8 +145,7 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
       if (mounted) {
         setState(() {
           _procesando = false;
-          _esperandoVerificacionSandbox = true;
-          _esperandoConfirmacionPayPal = false;
+          _esperandoVerificacionPayPal = true;
         });
       }
     } catch (e) {
@@ -156,7 +154,7 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colores.coral,
-            content: Text('Error abriendo PayPal Sandbox: $e'),
+            content: Text('Error abriendo PayPal: $e'),
           ),
         );
       }
@@ -176,7 +174,7 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
     if (estado != null && estado.isPremium) {
       setState(() {
         _procesando = false;
-        _esperandoVerificacionSandbox = false;
+        _esperandoVerificacionPayPal = false;
         _exito = true;
       });
     } else {
@@ -187,62 +185,8 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
         const SnackBar(
           backgroundColor: Colores.coral,
           content: Text(
-            'El pago aún no ha sido completado en PayPal Sandbox. Termina de aprobarlo en el navegador y vuelve a presionar comprobar.',
+            'El pago aún no ha sido confirmado por PayPal. Termina de aprobarlo en el navegador y vuelve a presionar comprobar.',
           ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _iniciarPagoPaypalDirecto() async {
-    final plan = planes[_planSeleccionado]['titulo'] as String;
-    final monto = _planSeleccionado == 0 ? '3.99' : '14.99';
-
-    setState(() {
-      _procesando = false;
-      _metodoSeleccionado = 'PayPal Directo';
-      _esperandoConfirmacionPayPal = true;
-      _esperandoVerificacionSandbox = false;
-    });
-
-    final urlPayPal = 'https://www.paypal.com/cgi-bin/webscr?cmd=_xclick'
-        '&business=ianrosero799@gmail.com'
-        '&item_name=InfocusMind%20Plus%20-%20${Uri.encodeComponent(plan)}'
-        '&amount=$monto'
-        '&currency_code=USD'
-        '&no_shipping=1';
-
-    await UsageService.abrirUrl(urlPayPal);
-  }
-
-  Future<void> _confirmarPagoPayPal() async {
-    setState(() {
-      _procesando = true;
-      _metodoSeleccionado = 'PayPal Directo';
-    });
-
-    final plan = planes[_planSeleccionado]['titulo'] as String;
-    final ok = await SubscriptionService.procesarPagoPlus(
-      metodoPago: 'PayPal Directo (ianrosero799@gmail.com)',
-      plan: plan,
-    );
-
-    if (!mounted) return;
-
-    if (ok) {
-      setState(() {
-        _procesando = false;
-        _esperandoConfirmacionPayPal = false;
-        _exito = true;
-      });
-    } else {
-      setState(() {
-        _procesando = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colores.coral,
-          content: Text('No se pudo verificar la activación. Intenta nuevamente.'),
         ),
       );
     }
@@ -440,33 +384,20 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
               ),
               const SizedBox(height: 8),
 
-              // Botón 1: PayPal Oficial (Automático & Verificado)
+              // Único Botón Oficial: PayPal Empresarial Live
               _BotonPago(
                 icono: Icons.verified_user_rounded,
                 texto: 'PayPal Oficial (Smart Checkout)',
                 subtexto: 'Verificación bancaria automática en 1 toque',
                 colorFondo: const Color(0xFF003087),
                 colorBorde: Colores.sol,
-                cargando: _procesando && _metodoSeleccionado == 'PayPal Sandbox' && !_esperandoVerificacionSandbox,
+                cargando: _procesando && _metodoSeleccionado == 'PayPal Oficial' && !_esperandoVerificacionPayPal,
                 deshabilitado: _procesando,
-                onTap: _iniciarPagoPaypalSandbox,
-              ),
-              const SizedBox(height: 8),
-
-              // Botón 2: PayPal Directo (ianrosero799@gmail.com)
-              _BotonPago(
-                icono: Icons.account_balance_wallet_rounded,
-                texto: 'PayPal Directo (ianrosero799@gmail.com)',
-                subtexto: 'Envío directo a saldo personal de Dylan Cuaces',
-                colorFondo: const Color(0xFF0F2648),
-                colorBorde: const Color(0xFF0079C1),
-                cargando: _procesando && _metodoSeleccionado == 'PayPal Directo' && !_esperandoConfirmacionPayPal,
-                deshabilitado: _procesando,
-                onTap: _iniciarPagoPaypalDirecto,
+                onTap: _iniciarPagoPaypalOficial,
               ),
 
-              // Tarjeta 1: Verificación real para PayPal Oficial
-              if (_esperandoVerificacionSandbox) ...[
+              // Tarjeta: Verificación oficial para PayPal
+              if (_esperandoVerificacionPayPal) ...[
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.all(14),
@@ -518,69 +449,8 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
                       const SizedBox(height: 4),
                       Center(
                         child: TextButton(
-                          onPressed: () => setState(() => _esperandoVerificacionSandbox = false),
+                          onPressed: () => setState(() => _esperandoVerificacionPayPal = false),
                           child: const Text('Cerrar y volver a elegir', style: TextStyle(color: Colores.tenue, fontSize: 10)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              // Tarjeta 2: Confirmación manual para PayPal Directo
-              if (_esperandoConfirmacionPayPal) ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0B192C),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF0079C1), width: 1.5),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.open_in_new_rounded, color: Color(0xFF0079C1), size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Pago abierto en PayPal (${_planSeleccionado == 0 ? '\$3.99' : '\$14.99'} USD)',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Una vez que completes el envío en PayPal a ianrosero799@gmail.com, toca este botón para confirmar y activar tu InfocusMind Plus:',
-                        style: TextStyle(color: Colores.luna, fontSize: 11, height: 1.3),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        height: 42,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colores.menta,
-                            foregroundColor: Colores.noche,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onPressed: _procesando ? null : _confirmarPagoPayPal,
-                          icon: _procesando
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colores.noche))
-                              : const Icon(Icons.check_circle_rounded, size: 20),
-                          label: Text(
-                            _procesando ? 'ACTIVANDO PLUS...' : '¡YA COMPLETÉ EL PAGO EN PAYPAL!',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Center(
-                        child: TextButton(
-                          onPressed: () => setState(() => _esperandoConfirmacionPayPal = false),
-                          child: const Text('Volver a elegir otro método', style: TextStyle(color: Colores.tenue, fontSize: 10)),
                         ),
                       ),
                     ],

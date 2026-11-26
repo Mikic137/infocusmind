@@ -1037,9 +1037,23 @@ void main() async {
     if (userId == null) return json(401, {'error': 'Sesión no válida'});
     try {
       final data = jsonDecode(await request.readAsString());
-      final orderId = (data['order_id'] ?? 'N/A').toString();
+      final orderId = (data['order_id'] ?? '').toString().trim();
       final plan = (data['plan'] ?? 'Plus Mensual').toString();
       final payerName = (data['payer_name'] ?? 'Usuario').toString();
+
+      if (orderId.isEmpty) {
+        return json(400, {'error': 'ID de orden no proporcionado'});
+      }
+
+      // Verificación directa de servidor a servidor con la API de PayPal Live
+      final orderValida = await verifyPaypalOrderLive(orderId);
+      if (!orderValida) {
+        print('ALERTA SEGURIDAD: Intento de activación rechazado. Orden $orderId no verificada para usuario $userId');
+        return json(400, {
+          'error': 'PayPal no ha confirmado la captura del pago para la orden $orderId',
+          'is_premium': false,
+        });
+      }
 
       final conn = await abrirConexion();
       try {
@@ -1047,10 +1061,10 @@ void main() async {
           Sql.named('UPDATE users SET is_premium = true WHERE id = @id'),
           parameters: {'id': userId},
         );
-        print('⚡ [PayPal Sandbox] Usuario $userId ($payerName) activó Plus con Order $orderId (Plan: $plan)');
+        print('⚡ [PayPal Live Oficial] ¡Pago verificado con el banco! Usuario $userId ($payerName) activó Plus con Order $orderId (Plan: $plan)');
         return json(200, {
           'success': true,
-          'message': '¡Pago en PayPal Sandbox capturado y verificado! InfocusMind Plus activado.',
+          'message': '¡Pago en PayPal verificado y capturado exitosamente! InfocusMind Plus activado.',
           'is_premium': true,
           'order_id': orderId,
         });

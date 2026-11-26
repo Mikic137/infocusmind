@@ -189,12 +189,22 @@ Response renderPaypalCheckoutHtml({
   <div class="container">
     <div class="badge">INFOCUSMIND ARCADE PLUS</div>
     <h1>Pago Seguro PayPal Oficial</h1>
-    <p class="sub">Paga con tu cuenta PayPal o tarjeta de débito/crédito. Tu suscripción se activará inmediatamente.</p>
+    <p class="sub">Procesado a través de la cuenta comercial oficial de InfocusMind. Tu suscripción se activará inmediatamente.</p>
+
+    <!-- Comercio Receptor Empresarial Oficial -->
+    <div style="background: rgba(0, 210, 211, 0.08); border: 1.5px solid var(--cian); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <div style="font-size: 11px; text-transform: uppercase; color: var(--cian); font-weight: 800; letter-spacing: 0.5px;">Comercio Receptor Oficial</div>
+        <div style="font-size: 14px; font-weight: 700; color: #fff; margin-top: 2px;">InfocusMind Business</div>
+        <div style="font-size: 11px; color: var(--menta); margin-top: 2px;">✔ Cuenta Empresarial Verificada (Patrick Riofrio)</div>
+      </div>
+      <div style="font-size: 26px;">🏢</div>
+    </div>
 
     <div class="plan-box">
       <div class="plan-info">
         <div class="title">$plan</div>
-        <div class="user">Cuenta: $userEmail</div>
+        <div class="user">Estudiante a activar: <strong>$userEmail</strong></div>
       </div>
       <div class="plan-price">
         <div class="amount">\$$amount</div>

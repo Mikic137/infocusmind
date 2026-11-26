@@ -387,8 +387,8 @@ class _ModalPlusDialogState extends State<_ModalPlusDialog> {
               // Único Botón Oficial: PayPal Empresarial Live
               _BotonPago(
                 icono: Icons.verified_user_rounded,
-                texto: 'PayPal Oficial (Smart Checkout)',
-                subtexto: 'Verificación bancaria automática en 1 toque',
+                texto: 'PayPal Empresarial (InfocusMind)',
+                subtexto: 'Receptor oficial: InfocusMind Business (Smart Checkout)',
                 colorFondo: const Color(0xFF003087),
                 colorBorde: Colores.sol,
                 cargando: _procesando && _metodoSeleccionado == 'PayPal Oficial' && !_esperandoVerificacionPayPal,

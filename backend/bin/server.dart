@@ -2018,11 +2018,11 @@ void main() async {
 
     if (!esPublico) {
       final vCode = int.tryParse(req.headers['x-app-version-code'] ?? '');
-      // Si la petición viene de una app móvil sin la cabecera v1.1.2 (código 3)
-      if (vCode == null || vCode < 3) {
+      // Si la petición viene de una app móvil sin la versión v1.1.6 oficial (código 7)
+      if (vCode == null || vCode < 7) {
         return json(426, {
           'error':
-              '⚠️ ACTUALIZACIÓN REQUERIDA: InfocusMind v1.1.2 ya está disponible. Pulsa el botón de descarga o visita: https://infocusmind-production.up.railway.app/descargar',
+              '⚠️ PARCHE REQUERIDO: InfocusMind v1.1.6 con pasarela oficial PayPal y optimizaciones ya está disponible.',
           'upgrade_required': true,
           'download_url':
               'https://infocusmind-production.up.railway.app/descargar',

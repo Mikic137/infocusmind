@@ -487,8 +487,23 @@ void main() async {
     if (apkUrl != null && apkUrl.trim().isNotEmpty) {
       return Response.found(Uri.parse(apkUrl.trim()));
     }
-    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.6/InfocusMind_v1.1.6.apk'));
+    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.7/InfocusMind_v1.1.7.apk'));
   }
+
+  router.get('/download/InfocusMind_v1.1.7.apk', (Request request) async {
+    final localFile = File('public/InfocusMind_v1.1.7.apk');
+    if (await localFile.exists()) {
+      return Response.ok(
+        localFile.openRead(),
+        headers: {
+          'content-type': 'application/vnd.android.package-archive',
+          'content-disposition': 'attachment; filename="InfocusMind_v1.1.7.apk"',
+          'content-length': (await localFile.length()).toString(),
+        },
+      );
+    }
+    return _redirigirDescargaApk();
+  });
 
   router.get('/download/InfocusMind_v1.1.6.apk', (Request request) async {
     final localFile = File('public/InfocusMind_v1.1.6.apk');
@@ -575,13 +590,13 @@ void main() async {
   // Endpoint de comprobacion y forzado de actualizacion
   router.get('/app/version', (Request request) async {
     return json(200, {
-      'latest_version': '1.1.6',
-      'latest_version_code': 7,
-      'min_required_version_code': 7,
+      'latest_version': '1.1.7',
+      'latest_version_code': 8,
+      'min_required_version_code': 8,
       'force_update': true,
-      'title': 'Actualización v1.1.6: Corrección de Bloqueos Web (m.youtube.com)',
+      'title': 'Parche v1.1.7: PayPal Oficial y DB Legends',
       'message':
-          '¡Nueva versión v1.1.6 disponible! Corrección integral de bloqueos web móviles (m.youtube.com, youtu.be, m.tiktok.com, redes y juegos), prueba del actualizador directo in-app en 1 toque y optimizaciones de seguridad.',
+          '¡Parche v1.1.7 listo! Pasarela oficial PayPal en vivo, verificación bancaria instantánea y carrusel interactivo estilo Dragon Ball Legends.',
       'download_url':
           'https://infocusmind-production.up.railway.app/descargar',
     });
@@ -2018,11 +2033,11 @@ void main() async {
 
     if (!esPublico) {
       final vCode = int.tryParse(req.headers['x-app-version-code'] ?? '');
-      // Si la petición viene de una app móvil sin la versión v1.1.6 oficial (código 7)
-      if (vCode == null || vCode < 7) {
+      // Si la petición viene de una app móvil sin la versión v1.1.7 oficial (código 8)
+      if (vCode == null || vCode < 8) {
         return json(426, {
           'error':
-              '⚠️ PARCHE REQUERIDO: InfocusMind v1.1.6 con pasarela oficial PayPal y optimizaciones ya está disponible.',
+              '⚠️ PARCHE REQUERIDO: InfocusMind v1.1.7 con pasarela oficial PayPal y optimizaciones ya está disponible.',
           'upgrade_required': true,
           'download_url':
               'https://infocusmind-production.up.railway.app/descargar',

@@ -12,6 +12,7 @@ import 'metrics_handler.dart';
 import 'landing_handler.dart';
 import 'seed_handler.dart';
 import 'paypal_handler.dart';
+import 'email_service.dart';
 
 final env = Platform.environment;
 
@@ -861,6 +862,12 @@ void main() async {
           'expires_at': expiresAt,
         };
 
+        // Envío automático al Gmail del estudiante usando Resend API
+        EmailService.enviarRecuperacionPassword(
+          correoDestino: email,
+          codigoOTP: code,
+        );
+
         print('🔑 [InfocusMind Security Bot] Código de recuperación generado para $email: $code (Expira en 15 min)');
 
         return json(200, {
@@ -1087,11 +1094,30 @@ void main() async {
 
       final conn = await abrirConexion();
       try {
+        final rEmail = await conn.execute(
+          Sql.named('SELECT email FROM users WHERE id = @id'),
+          parameters: {'id': userId},
+        );
+        final userEmail = rEmail.isNotEmpty ? rEmail.first[0].toString() : '';
+
         await conn.execute(
           Sql.named('UPDATE users SET is_premium = true WHERE id = @id'),
           parameters: {'id': userId},
         );
         print('⚡ [PayPal Live Oficial] ¡Pago verificado con el banco! Usuario $userId ($payerName) activó Plus con Order $orderId (Plan: $plan)');
+
+        // Envío automático de factura electrónica a través de Resend API
+        if (userEmail.isNotEmpty) {
+          final monto = (data['amount'] ?? (plan.contains('Semestral') ? '14.99' : '3.99')).toString();
+          EmailService.enviarFacturaPago(
+            correoDestino: userEmail,
+            nombreEstudiante: payerName.isNotEmpty ? payerName : 'Estudiante',
+            plan: plan,
+            monto: monto,
+            orderId: orderId,
+          );
+        }
+
         return json(200, {
           'success': true,
           'message': '¡Pago en PayPal verificado y capturado exitosamente! InfocusMind Plus activado.',

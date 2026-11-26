@@ -487,8 +487,23 @@ void main() async {
     if (apkUrl != null && apkUrl.trim().isNotEmpty) {
       return Response.found(Uri.parse(apkUrl.trim()));
     }
-    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.7/InfocusMind_v1.1.7.apk'));
+    return Response.found(Uri.parse('https://github.com/Mikic137/infocusmind/releases/download/v1.1.8/InfocusMind_v1.1.8.apk'));
   }
+
+  router.get('/download/InfocusMind_v1.1.8.apk', (Request request) async {
+    final localFile = File('public/InfocusMind_v1.1.8.apk');
+    if (await localFile.exists()) {
+      return Response.ok(
+        localFile.openRead(),
+        headers: {
+          'content-type': 'application/vnd.android.package-archive',
+          'content-disposition': 'attachment; filename="InfocusMind_v1.1.8.apk"',
+          'content-length': (await localFile.length()).toString(),
+        },
+      );
+    }
+    return _redirigirDescargaApk();
+  });
 
   router.get('/download/InfocusMind_v1.1.7.apk', (Request request) async {
     final localFile = File('public/InfocusMind_v1.1.7.apk');
@@ -590,13 +605,13 @@ void main() async {
   // Endpoint de comprobacion y forzado de actualizacion
   router.get('/app/version', (Request request) async {
     return json(200, {
-      'latest_version': '1.1.7',
-      'latest_version_code': 8,
-      'min_required_version_code': 8,
+      'latest_version': '1.1.8',
+      'latest_version_code': 9,
+      'min_required_version_code': 9,
       'force_update': true,
-      'title': 'Parche v1.1.7: PayPal Oficial y DB Legends',
+      'title': 'InfocusMind v1.1.8 Oficial',
       'message':
-          '¡Parche v1.1.7 listo! Pasarela oficial PayPal en vivo, verificación bancaria instantánea y carrusel interactivo estilo Dragon Ball Legends.',
+          '¡Parche v1.1.8 listo! Pasarela exclusiva de PayPal Oficial en vivo, verificación bancaria en 1 toque y carrusel de optimización estilo Dragon Ball Legends.',
       'download_url':
           'https://infocusmind-production.up.railway.app/descargar',
     });
@@ -2033,11 +2048,11 @@ void main() async {
 
     if (!esPublico) {
       final vCode = int.tryParse(req.headers['x-app-version-code'] ?? '');
-      // Si la petición viene de una app móvil sin la versión v1.1.7 oficial (código 8)
-      if (vCode == null || vCode < 8) {
+      // Si la petición viene de una app móvil sin la versión v1.1.8 oficial (código 9)
+      if (vCode == null || vCode < 9) {
         return json(426, {
           'error':
-              '⚠️ PARCHE REQUERIDO: InfocusMind v1.1.7 con pasarela oficial PayPal y optimizaciones ya está disponible.',
+              '⚠️ PARCHE REQUERIDO: InfocusMind v1.1.8 con pasarela oficial PayPal y optimizaciones ya está disponible.',
           'upgrade_required': true,
           'download_url':
               'https://infocusmind-production.up.railway.app/descargar',

@@ -317,129 +317,134 @@ class _AssistantViewState extends State<AssistantView> {
           const SizedBox(height: 16),
 
           // Formulario
-          TarjetaJuego(
-            borde: Colores.borde,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Builder(
+            builder: (context) {
+              final gestor = GestorTema.instancia;
+              return TarjetaJuego(
+                borde: gestor.colorBorde,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('¿QUÉ QUIERES LOGRAR?', style: hud(9, color: Colores.cian)),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colores.cian.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colores.cian.withValues(alpha: 0.5), width: 1),
+                    Row(
+                      children: [
+                        Text('¿QUÉ QUIERES LOGRAR?', style: hud(9, color: gestor.colorAcento)),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: gestor.colorAcento.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(gestor.esMaduro ? 6 : (gestor.esCalido ? 6 : 4)),
+                            border: Border.all(color: gestor.colorAcento.withValues(alpha: 0.5), width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.mic_rounded, color: gestor.colorAcento, size: 12),
+                              const SizedBox(width: 4),
+                              Text('INTERFAZ INVISIBLE', style: hud(6, color: gestor.colorAcento)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: tituloCtrl,
+                      maxLength: 200,
+                      decoration: InputDecoration(
+                        hintText: 'Ej: Estudiar para el examen final de Cálculo',
+                        counterText: '',
+                        suffixIcon: IconButton(
+                          icon: Icon(Icons.mic_rounded, color: gestor.colorAcento),
+                          tooltip: 'Dictar por voz (Interfaz Invisible)',
+                          onPressed: () async {
+                            final texto = await UsageService.escucharVoz(
+                              prompt: 'Di qué misión o meta quieres lograr...',
+                            );
+                            if (texto != null && texto.trim().isNotEmpty) {
+                              setState(() {
+                                tituloCtrl.text = texto.trim();
+                              });
+                            }
+                          },
+                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.mic_rounded, color: Colores.cian, size: 12),
-                          const SizedBox(width: 4),
-                          Text('INTERFAZ INVISIBLE', style: hud(6, color: Colores.cian)),
-                        ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text('DETALLES ADICIONALES (OPCIONAL)', style: hud(9, color: Colores.tenue)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: detallesCtrl,
+                      maxLines: 2,
+                      maxLength: 500,
+                      decoration: InputDecoration(
+                        hintText: 'Ej: Capítulos 4 y 5, teoremas y 10 ejercicios prácticos',
+                        counterText: '',
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.mic_rounded, color: Colores.tenue),
+                          tooltip: 'Dictar detalles por voz',
+                          onPressed: () async {
+                            final texto = await UsageService.escucharVoz(
+                              prompt: 'Di los detalles adicionales de la misión...',
+                            );
+                            if (texto != null && texto.trim().isNotEmpty) {
+                              setState(() {
+                                if (detallesCtrl.text.isEmpty) {
+                                  detallesCtrl.text = texto.trim();
+                                } else {
+                                  detallesCtrl.text = '${detallesCtrl.text} ${texto.trim()}';
+                                }
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Selector de calendario
+                    Text('DÍA PARA REALIZARLO', style: hud(9, color: Colors.white)),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: seleccionarFecha,
+                      borderRadius: BorderRadius.circular(gestor.esMaduro ? 12 : (gestor.esCalido ? 10 : 6)),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: gestor.colorFondo,
+                          borderRadius: BorderRadius.circular(gestor.esMaduro ? 12 : (gestor.esCalido ? 10 : 6)),
+                          border: Border.all(color: gestor.colorAcento.withValues(alpha: 0.8), width: 1.5),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_month_rounded, color: gestor.colorAcento, size: 22),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                formatearFecha(fechaSeleccionada),
+                                style: fuenteCuerpo(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: gestor.colorAcento.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(gestor.esMaduro ? 6 : (gestor.esCalido ? 6 : 4)),
+                              ),
+                              child: Text('CAMBIAR', style: hud(8, color: gestor.colorAcento)),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: tituloCtrl,
-                  maxLength: 200,
-                  decoration: InputDecoration(
-                    hintText: 'Ej: Estudiar para el examen final de Cálculo',
-                    counterText: '',
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.mic_rounded, color: Colores.cian),
-                      tooltip: 'Dictar por voz (Interfaz Invisible)',
-                      onPressed: () async {
-                        final texto = await UsageService.escucharVoz(
-                          prompt: 'Di qué misión o meta quieres lograr...',
-                        );
-                        if (texto != null && texto.trim().isNotEmpty) {
-                          setState(() {
-                            tituloCtrl.text = texto.trim();
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text('DETALLES ADICIONALES (OPCIONAL)', style: hud(9, color: Colores.tenue)),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: detallesCtrl,
-                  maxLines: 2,
-                  maxLength: 500,
-                  decoration: InputDecoration(
-                    hintText: 'Ej: Capítulos 4 y 5, teoremas y 10 ejercicios prácticos',
-                    counterText: '',
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.mic_rounded, color: Colores.tenue),
-                      tooltip: 'Dictar detalles por voz',
-                      onPressed: () async {
-                        final texto = await UsageService.escucharVoz(
-                          prompt: 'Di los detalles adicionales de la misión...',
-                        );
-                        if (texto != null && texto.trim().isNotEmpty) {
-                          setState(() {
-                            if (detallesCtrl.text.isEmpty) {
-                              detallesCtrl.text = texto.trim();
-                            } else {
-                              detallesCtrl.text = '${detallesCtrl.text} ${texto.trim()}';
-                            }
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Selector de calendario
-                Text('DÍA PARA REALIZARLO', style: hud(9, color: Colores.luna)),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: seleccionarFecha,
-                  borderRadius: BorderRadius.circular(6),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colores.noche,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colores.cian.withValues(alpha: 0.8), width: 1.5),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_month_rounded, color: Colores.cian, size: 22),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            formatearFecha(fechaSeleccionada),
-                            style: const TextStyle(
-                              color: Colores.luna,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colores.cian.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text('CAMBIAR', style: hud(8, color: Colores.cian)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
           const SizedBox(height: 16),
 

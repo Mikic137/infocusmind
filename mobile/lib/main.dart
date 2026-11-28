@@ -5,8 +5,9 @@ import 'features/splash/splash_page.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await GestorTema.instancia.cargarTemaGuardado();
   UsageService.inicializarListeners();
   runApp(ListenableBuilder(
     listenable: GestorTema.instancia,

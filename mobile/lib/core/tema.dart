@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class Colores {
@@ -42,6 +43,9 @@ class GestorTema extends ChangeNotifier {
   static final GestorTema instancia = GestorTema._();
   GestorTema._();
 
+  static const _claveTema = 'app_estilo_visual_v1';
+  final _storage = const FlutterSecureStorage();
+
   EstiloVisual _estilo = EstiloVisual.arcade;
   EstiloVisual get estilo => _estilo;
 
@@ -49,6 +53,22 @@ class GestorTema extends ChangeNotifier {
   bool get esMaduro => _estilo == EstiloVisual.maduro;
   bool get esCalido => _estilo == EstiloVisual.calido;
   bool get esMonocromo => _estilo == EstiloVisual.monocromo;
+
+  Future<void> cargarTemaGuardado() async {
+    try {
+      final guardado = await _storage.read(key: _claveTema);
+      if (guardado != null) {
+        final match = EstiloVisual.values.cast<EstiloVisual?>().firstWhere(
+          (e) => e?.name == guardado,
+          orElse: () => null,
+        );
+        if (match != null && match != _estilo) {
+          _estilo = match;
+          notifyListeners();
+        }
+      }
+    } catch (_) {}
+  }
 
   Color get colorFondo {
     switch (_estilo) {
@@ -119,6 +139,7 @@ class GestorTema extends ChangeNotifier {
     if (_estilo == nuevo) return;
     _estilo = nuevo;
     notifyListeners();
+    _storage.write(key: _claveTema, value: nuevo.name).catchError((_) {});
   }
 
   ThemeData temaActual() {
@@ -167,6 +188,292 @@ TextStyle hud(double size, {Color? color, FontWeight? weight}) {
   );
 }
 
+/// Tipografía para títulos adaptativa al tema
+TextStyle fuenteTitulo({
+  double fontSize = 17,
+  Color? color,
+  FontWeight? fontWeight,
+  double? height,
+  TextDecoration? decoration,
+}) {
+  final gestor = GestorTema.instancia;
+  if (gestor.esMaduro) {
+    return GoogleFonts.plusJakartaSans(
+      fontSize: fontSize,
+      color: color ?? Colors.white,
+      fontWeight: fontWeight ?? FontWeight.w700,
+      height: height,
+      decoration: decoration,
+      letterSpacing: -0.2,
+    );
+  }
+  if (gestor.esCalido) {
+    return GoogleFonts.outfit(
+      fontSize: fontSize + 0.5,
+      color: color ?? const Color(0xFFFEF3C7),
+      fontWeight: fontWeight ?? FontWeight.w700,
+      height: height,
+      decoration: decoration,
+    );
+  }
+  if (gestor.esMonocromo) {
+    return GoogleFonts.inter(
+      fontSize: fontSize,
+      color: color ?? Colors.white,
+      fontWeight: fontWeight ?? FontWeight.w800,
+      height: height,
+      decoration: decoration,
+      letterSpacing: -0.3,
+    );
+  }
+  return GoogleFonts.baloo2(
+    fontSize: fontSize + 1,
+    color: color ?? Colores.luna,
+    fontWeight: fontWeight ?? FontWeight.w800,
+    height: height,
+    decoration: decoration,
+  );
+}
+
+/// Tipografía para cuerpo y texto principal adaptativa al tema
+TextStyle fuenteCuerpo({
+  double fontSize = 14,
+  Color? color,
+  FontWeight? fontWeight,
+  double? height,
+  TextDecoration? decoration,
+}) {
+  final gestor = GestorTema.instancia;
+  if (gestor.esMaduro) {
+    return GoogleFonts.plusJakartaSans(
+      fontSize: fontSize,
+      color: color ?? const Color(0xFFE2E8F0),
+      fontWeight: fontWeight ?? FontWeight.w500,
+      height: height ?? 1.3,
+      decoration: decoration,
+    );
+  }
+  if (gestor.esCalido) {
+    return GoogleFonts.outfit(
+      fontSize: fontSize,
+      color: color ?? const Color(0xFFF5F5F4),
+      fontWeight: fontWeight ?? FontWeight.w400,
+      height: height ?? 1.3,
+      decoration: decoration,
+    );
+  }
+  if (gestor.esMonocromo) {
+    return GoogleFonts.inter(
+      fontSize: fontSize,
+      color: color ?? Colors.white,
+      fontWeight: fontWeight ?? FontWeight.w500,
+      height: height ?? 1.3,
+      decoration: decoration,
+    );
+  }
+  return GoogleFonts.baloo2(
+    fontSize: fontSize + 1,
+    color: color ?? Colores.luna,
+    fontWeight: fontWeight ?? FontWeight.w600,
+    height: height ?? 1.25,
+    decoration: decoration,
+  );
+}
+
+/// Tipografía para subtítulos y chips adaptativa al tema
+TextStyle fuenteSubtitulo({
+  double fontSize = 12,
+  Color? color,
+  FontWeight? fontWeight,
+  double? height,
+}) {
+  final gestor = GestorTema.instancia;
+  if (gestor.esMaduro) {
+    return GoogleFonts.plusJakartaSans(
+      fontSize: fontSize,
+      color: color ?? const Color(0xFF94A3B8),
+      fontWeight: fontWeight ?? FontWeight.w500,
+      height: height,
+    );
+  }
+  if (gestor.esCalido) {
+    return GoogleFonts.outfit(
+      fontSize: fontSize,
+      color: color ?? const Color(0xFFA8A29E),
+      fontWeight: fontWeight ?? FontWeight.w500,
+      height: height,
+    );
+  }
+  if (gestor.esMonocromo) {
+    return GoogleFonts.inter(
+      fontSize: fontSize,
+      color: color ?? const Color(0xFFA3A3A3),
+      fontWeight: fontWeight ?? FontWeight.w500,
+      height: height,
+    );
+  }
+  return GoogleFonts.baloo2(
+    fontSize: fontSize + 1,
+    color: color ?? Colores.tenue,
+    fontWeight: fontWeight ?? FontWeight.w600,
+    height: height,
+  );
+}
+
+/// Casilla de verificación (Checkbox) completamente transformada por el tema visual
+class CasillaTema extends StatelessWidget {
+  final bool valor;
+  final ValueChanged<bool>? onChanged;
+  final double tamano;
+  final Color? colorActivo;
+  final Color? colorBorde;
+  final Widget? iconoMarcado;
+
+  const CasillaTema({
+    super.key,
+    required this.valor,
+    required this.onChanged,
+    this.tamano = 26,
+    this.colorActivo,
+    this.colorBorde,
+    this.iconoMarcado,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final gestor = GestorTema.instancia;
+    final activo = valor;
+
+    // 1. Arcade: Retro pixel cuadrado con sombra sólida
+    if (gestor.esArcade) {
+      final borderCol = activo
+          ? Colores.mentaSombra
+          : (colorBorde ?? Colores.bordeBrillante);
+      return GestureDetector(
+        onTap: onChanged != null ? () => onChanged!(!valor) : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          width: tamano,
+          height: tamano,
+          decoration: BoxDecoration(
+            color: activo ? (colorActivo ?? Colores.menta) : Colores.noche,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: borderCol, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: activo ? Colores.mentaSombra : Colores.sombraCarta,
+                offset: const Offset(0, 2),
+                blurRadius: 0,
+              ),
+            ],
+          ),
+          child: activo
+              ? (iconoMarcado ??
+                  const Icon(Icons.check_rounded, size: 18, color: Colores.noche))
+              : null,
+        ),
+      );
+    }
+
+    // 2. Maduro: Squircle moderno ejecutivo, suave elevación
+    if (gestor.esMaduro) {
+      final borderCol = activo
+          ? const Color(0xFF38BDF8)
+          : (colorBorde ?? const Color(0xFF475569));
+      return GestureDetector(
+        onTap: onChanged != null ? () => onChanged!(!valor) : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          width: tamano,
+          height: tamano,
+          decoration: BoxDecoration(
+            gradient: activo
+                ? const LinearGradient(
+                    colors: [Color(0xFF38BDF8), Color(0xFF0284C7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: activo ? null : gestor.colorSuperficie,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: borderCol, width: 1.4),
+            boxShadow: activo
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
+                      offset: const Offset(0, 2),
+                      blurRadius: 6,
+                    ),
+                  ]
+                : null,
+          ),
+          child: activo
+              ? (iconoMarcado ??
+                  const Icon(Icons.check_rounded, size: 17, color: Color(0xFF0F172A)))
+              : null,
+        ),
+      );
+    }
+
+    // 3. Cálido: Cápsula suave / circular con ámbar miel
+    if (gestor.esCalido) {
+      final borderCol = activo
+          ? const Color(0xFFF59E0B)
+          : (colorBorde ?? const Color(0xFF57534E));
+      return GestureDetector(
+        onTap: onChanged != null ? () => onChanged!(!valor) : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          width: tamano,
+          height: tamano,
+          decoration: BoxDecoration(
+            color: activo ? const Color(0xFFF59E0B) : gestor.colorSuperficie,
+            shape: BoxShape.circle,
+            border: Border.all(color: borderCol, width: 1.6),
+            boxShadow: activo
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+                      offset: const Offset(0, 2),
+                      blurRadius: 8,
+                    ),
+                  ]
+                : null,
+          ),
+          child: activo
+              ? (iconoMarcado ??
+                  const Icon(Icons.check_rounded, size: 17, color: Color(0xFF1C1917)))
+              : null,
+        ),
+      );
+    }
+
+    // 4. Monocromo: Cuadrado estricto minimalista en blanco y negro puro
+    final borderCol = activo
+        ? Colors.white
+        : (colorBorde ?? const Color(0xFF525252));
+    return GestureDetector(
+      onTap: onChanged != null ? () => onChanged!(!valor) : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        width: tamano,
+        height: tamano,
+        decoration: BoxDecoration(
+          color: activo ? Colors.white : gestor.colorSuperficie,
+          borderRadius: BorderRadius.circular(3),
+          border: Border.all(color: borderCol, width: 1.5),
+        ),
+        child: activo
+            ? (iconoMarcado ??
+                const Icon(Icons.check_rounded, size: 17, color: Colors.black))
+            : null,
+      ),
+    );
+  }
+}
+
 OutlineInputBorder _borde(Color c) => OutlineInputBorder(
   borderRadius: BorderRadius.circular(4),
   borderSide: BorderSide(color: c, width: 2),
@@ -181,10 +488,9 @@ ThemeData temaJuego() {
       brightness: Brightness.dark,
     ),
   );
-  final texto = base.textTheme.apply(
+  final texto = GoogleFonts.baloo2TextTheme(base.textTheme).apply(
     bodyColor: Colores.luna,
     displayColor: Colores.luna,
-    fontFamily: GoogleFonts.baloo2().fontFamily,
   );
   return base.copyWith(
     scaffoldBackgroundColor: Colores.noche,
@@ -198,6 +504,23 @@ ThemeData temaJuego() {
         fontWeight: FontWeight.w700,
         color: Colores.luna,
       ),
+    ),
+    cardTheme: CardThemeData(
+      color: Colores.nocheClara,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+        side: const BorderSide(color: Colores.borde, width: 2),
+      ),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+      side: const BorderSide(color: Colores.bordeBrillante, width: 2),
+      fillColor: WidgetStateProperty.resolveWith((estados) {
+        if (estados.contains(WidgetState.selected)) return Colores.menta;
+        return Colores.noche;
+      }),
+      checkColor: const WidgetStatePropertyAll(Colores.noche),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -870,8 +1193,7 @@ ThemeData temaMaduro() {
 
   return base.copyWith(
     scaffoldBackgroundColor: bg,
-    textTheme: base.textTheme.apply(
-      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+    textTheme: GoogleFonts.plusJakartaSansTextTheme(base.textTheme).apply(
       bodyColor: const Color(0xFFF8FAFC),
       displayColor: const Color(0xFFF8FAFC),
     ),
@@ -887,10 +1209,21 @@ ThemeData temaMaduro() {
     ),
     cardTheme: CardThemeData(
       color: surface,
+      elevation: 3,
+      shadowColor: Colors.black.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: const BorderSide(color: border, width: 1.2),
       ),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      side: const BorderSide(color: Color(0xFF475569), width: 1.4),
+      fillColor: WidgetStateProperty.resolveWith((estados) {
+        if (estados.contains(WidgetState.selected)) return accent;
+        return surface;
+      }),
+      checkColor: const WidgetStatePropertyAll(Color(0xFF0F172A)),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: surface,
@@ -938,8 +1271,7 @@ ThemeData temaCalido() {
 
   return base.copyWith(
     scaffoldBackgroundColor: bg,
-    textTheme: base.textTheme.apply(
-      fontFamily: GoogleFonts.outfit().fontFamily,
+    textTheme: GoogleFonts.outfitTextTheme(base.textTheme).apply(
       bodyColor: const Color(0xFFFAFAF9),
       displayColor: const Color(0xFFFAFAF9),
     ),
@@ -955,10 +1287,21 @@ ThemeData temaCalido() {
     ),
     cardTheme: CardThemeData(
       color: surface,
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.25),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: border, width: 1.2),
+        side: const BorderSide(color: border, width: 1.4),
       ),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      side: const BorderSide(color: Color(0xFF57534E), width: 1.5),
+      fillColor: WidgetStateProperty.resolveWith((estados) {
+        if (estados.contains(WidgetState.selected)) return accent;
+        return surface;
+      }),
+      checkColor: const WidgetStatePropertyAll(Color(0xFF1C1917)),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: surface,
@@ -1008,8 +1351,7 @@ ThemeData temaMonocromo() {
 
   return base.copyWith(
     scaffoldBackgroundColor: bg,
-    textTheme: base.textTheme.apply(
-      fontFamily: GoogleFonts.inter().fontFamily,
+    textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
       bodyColor: Colors.white,
       displayColor: Colors.white,
     ),
@@ -1026,10 +1368,20 @@ ThemeData temaMonocromo() {
     ),
     cardTheme: CardThemeData(
       color: surface,
+      elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         side: const BorderSide(color: border, width: 1.2),
       ),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+      side: const BorderSide(color: Color(0xFF525252), width: 1.5),
+      fillColor: WidgetStateProperty.resolveWith((estados) {
+        if (estados.contains(WidgetState.selected)) return Colors.white;
+        return surface;
+      }),
+      checkColor: const WidgetStatePropertyAll(Colors.black),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: surface,
@@ -1108,7 +1460,7 @@ void mostrarSelectorTema(BuildContext context) {
                 ctx,
                 estilo: EstiloVisual.arcade,
                 titulo: 'Juvenil / Cyberpunk HUD',
-                subtitulo: 'Estilo arcade retro con fuente pixel art y colores neón',
+                subtitulo: 'Casillas retro pixel • Tipografía Baloo & 8-Bit • Acentos Neón',
                 icono: Icons.sports_esports_rounded,
                 color: Colores.violeta,
               ),
@@ -1117,25 +1469,25 @@ void mostrarSelectorTema(BuildContext context) {
                 ctx,
                 estilo: EstiloVisual.maduro,
                 titulo: 'Maduro / Minimalista Ejecutivo',
-                subtitulo: 'Tipografía moderna limpia, tonos sobrios y sin exceso de IA',
+                subtitulo: 'Casillas squircle • Tipografía Plus Jakarta Sans • Tono Slate & Sky',
                 icono: Icons.workspace_premium_rounded,
-                color: Colores.cian,
+                color: const Color(0xFF38BDF8),
               ),
               const SizedBox(height: 10),
               _buildOpcionTema(
                 ctx,
                 estilo: EstiloVisual.calido,
                 titulo: 'Biblioteca Cálida & Café',
-                subtitulo: 'Ambiente sereno, tonos ámbar y lectura relajante',
+                subtitulo: 'Casillas circulares • Tipografía Outfit • Miel & Ámbar Sereno',
                 icono: Icons.menu_book_rounded,
-                color: Colores.sol,
+                color: const Color(0xFFF59E0B),
               ),
               const SizedBox(height: 10),
               _buildOpcionTema(
                 ctx,
                 estilo: EstiloVisual.monocromo,
                 titulo: 'Blanco y Negro / Neutral',
-                subtitulo: 'Minimalista puro, sobrio y sin distracciones de color',
+                subtitulo: 'Casillas geométricas • Tipografía Inter • Cero distracciones de color',
                 icono: Icons.contrast_rounded,
                 color: Colors.white,
               ),
@@ -1156,17 +1508,20 @@ Widget _buildOpcionTema(
   required Color color,
 }) {
   final seleccionado = GestorTema.instancia.estilo == estilo;
+  final gestor = GestorTema.instancia;
+  final radio = gestor.esMaduro ? 14.0 : (gestor.esCalido ? 12.0 : (gestor.esMonocromo ? 6.0 : 8.0));
+
   return InkWell(
     onTap: () {
       GestorTema.instancia.cambiarEstilo(estilo);
       Navigator.of(context).pop();
     },
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(radio),
     child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: seleccionado ? color.withValues(alpha: 0.15) : GestorTema.instancia.colorFondo,
-        borderRadius: BorderRadius.circular(12),
+        color: seleccionado ? color.withValues(alpha: 0.16) : GestorTema.instancia.colorFondo,
+        borderRadius: BorderRadius.circular(radio),
         border: Border.all(
           color: seleccionado ? color : GestorTema.instancia.colorBorde,
           width: seleccionado ? 2 : 1,
@@ -1178,7 +1533,7 @@ Widget _buildOpcionTema(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(gestor.esMaduro ? 10 : (gestor.esCalido ? 10 : 6)),
             ),
             child: Icon(icono, color: color, size: 24),
           ),
@@ -1189,7 +1544,7 @@ Widget _buildOpcionTema(
               children: [
                 Text(
                   titulo,
-                  style: const TextStyle(
+                  style: fuenteTitulo(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -1198,13 +1553,16 @@ Widget _buildOpcionTema(
                 const SizedBox(height: 2),
                 Text(
                   subtitulo,
-                  style: const TextStyle(color: Colores.tenue, fontSize: 11),
+                  style: fuenteSubtitulo(
+                    color: Colores.tenue,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
           ),
           if (seleccionado)
-            Icon(Icons.check_circle_rounded, color: color, size: 20),
+            Icon(Icons.check_circle_rounded, color: color, size: 22),
         ],
       ),
     ),

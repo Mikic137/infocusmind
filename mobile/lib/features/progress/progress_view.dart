@@ -53,6 +53,7 @@ class _ProgressViewState extends State<ProgressView> {
   int _n(String clave) => (datos![clave] as num).toInt();
 
   Widget _racha(int racha, int hoyMin) {
+    final gestor = GestorTema.instancia;
     final activa = racha > 0;
     String mensaje;
     if (!activa) {
@@ -62,32 +63,53 @@ class _ProgressViewState extends State<ProgressView> {
     } else {
       mensaje = 'Hoy ya sumaste $hoyMin min de foco. ¡Mantén la llama!';
     }
+
+    final colorFuego = activa
+        ? (gestor.esCalido ? const Color(0xFFF59E0B) : Colores.coral)
+        : gestor.colorBorde;
+
     return TarjetaJuego(
-      borde: activa ? Colores.coral : Colores.borde,
+      borde: activa ? colorFuego : gestor.colorBorde,
       child: Row(
         children: [
           Container(
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: activa ? Colores.coral : Colores.noche,
-              borderRadius: BorderRadius.circular(8),
+              color: activa
+                  ? (gestor.esMonocromo ? Colors.white : (gestor.esCalido ? const Color(0xFFF59E0B) : Colores.coral))
+                  : gestor.colorFondo,
+              borderRadius: BorderRadius.circular(gestor.esMaduro ? 14 : (gestor.esCalido ? 12 : (gestor.esMonocromo ? 6 : 8))),
               border: Border.all(
-                color: activa ? Colores.sol : Colores.borde,
+                color: activa
+                    ? (gestor.esMonocromo ? Colors.white : (gestor.esCalido ? const Color(0xFFFEF3C7) : Colores.sol))
+                    : gestor.colorBorde,
                 width: 2,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: activa ? Colores.coralSombra : Colores.sombraCarta,
-                  offset: const Offset(0, 4),
-                  blurRadius: 0,
-                ),
-              ],
+              boxShadow: gestor.esArcade
+                  ? [
+                      BoxShadow(
+                        color: activa ? Colores.coralSombra : Colores.sombraCarta,
+                        offset: const Offset(0, 4),
+                        blurRadius: 0,
+                      ),
+                    ]
+                  : (gestor.esMaduro
+                      ? [
+                          BoxShadow(
+                            color: activa ? const Color(0xFFFF2E63).withValues(alpha: 0.35) : Colors.black26,
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : null),
             ),
             child: Icon(
               Icons.local_fire_department_rounded,
               size: 40,
-              color: activa ? Colores.sol : Colores.tenue,
+              color: activa
+                  ? (gestor.esMonocromo ? Colors.black : (gestor.esCalido ? Colors.white : Colores.sol))
+                  : Colores.tenue,
             ),
           ),
           const SizedBox(width: 16),
@@ -98,19 +120,22 @@ class _ProgressViewState extends State<ProgressView> {
                 Row(
                   children: [
                     Text('$racha',
-                        style: hud(22, color: activa ? Colores.sol : Colores.tenue)),
+                        style: hud(22, color: activa ? (gestor.esMonocromo ? Colors.white : Colores.sol) : Colores.tenue)),
                     const SizedBox(width: 8),
                     Text(
                       racha == 1 ? 'DÍA SEGUIDO' : 'DÍAS SEGUIDOS',
-                      style: hud(9, color: activa ? Colores.coral : Colores.tenue),
+                      style: hud(9, color: activa ? colorFuego : Colores.tenue),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Text(
                   mensaje,
-                  style: const TextStyle(
-                      color: Colores.luna, fontSize: 13, height: 1.2),
+                  style: fuenteCuerpo(
+                    color: Colors.white,
+                    fontSize: 13,
+                    height: 1.25,
+                  ),
                 ),
               ],
             ),
@@ -128,13 +153,17 @@ class _ProgressViewState extends State<ProgressView> {
           children: [
             Icon(icono, size: 20, color: colorIcono),
             const SizedBox(height: 6),
-            Text(valor, style: hud(14, color: Colores.luna)),
+            Text(valor, style: hud(14, color: Colors.white)),
             const SizedBox(height: 6),
             Text(
               etiqueta,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  color: Colores.tenue, fontSize: 11, height: 1.1, fontWeight: FontWeight.w600),
+              style: fuenteSubtitulo(
+                color: Colores.tenue,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                height: 1.1,
+              ),
             ),
           ],
         ),
@@ -143,6 +172,7 @@ class _ProgressViewState extends State<ProgressView> {
   }
 
   Widget _ritmo() {
+    final gestor = GestorTema.instancia;
     final activo = datos!['active'] == true;
     final factor = (datos!['factor'] as num).toDouble();
     final validas = _n('learning_sessions');
@@ -154,8 +184,13 @@ class _ProgressViewState extends State<ProgressView> {
     } else {
       texto = 'Tus estimaciones están muy ajustadas a tu ritmo real.';
     }
+
+    final colorActivo = activo
+        ? (gestor.esMonocromo ? Colors.white : (gestor.esCalido ? const Color(0xFFF59E0B) : Colores.menta))
+        : gestor.colorBorde;
+
     return TarjetaJuego(
-      borde: activo ? Colores.menta : Colores.borde,
+      borde: colorActivo,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -164,40 +199,42 @@ class _ProgressViewState extends State<ProgressView> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: activo
-                      ? Colores.menta.withValues(alpha: 0.2)
-                      : Colores.violeta.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(3),
+                  color: colorActivo.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(gestor.esMaduro ? 6 : (gestor.esCalido ? 6 : 3)),
                   border: Border.all(
-                    color: activo ? Colores.menta : Colores.violeta,
+                    color: colorActivo,
                     width: 1,
                   ),
                 ),
                 child: Text(
                   activo ? 'APRENDIZAJE ACTIVO' : 'CALIBRANDO',
-                  style: hud(7, color: activo ? Colores.menta : Colores.lila),
+                  style: hud(7, color: colorActivo),
                 ),
               ),
               const Spacer(),
               if (!activo)
                 Text(
                   '$validas / 3 SESIONES',
-                  style: hud(8, color: Colores.sol),
+                  style: hud(8, color: gestor.esMonocromo ? Colors.white : Colores.sol),
                 ),
             ],
           ),
           const SizedBox(height: 10),
-          const Text('Ritmo de concentración',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          Text(
+            'Ritmo de concentración',
+            style: fuenteTitulo(fontSize: 17, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 8),
           if (activo) ...[
             Text('${(factor * 100).round()}% del tiempo estimado',
-                style: hud(12, color: Colores.sol)),
+                style: hud(12, color: gestor.esMonocromo ? Colors.white : Colores.sol)),
             const SizedBox(height: 6),
-            Text(texto,
-                style: const TextStyle(color: Colores.luna, height: 1.2, fontSize: 13)),
+            Text(
+              texto,
+              style: fuenteCuerpo(color: Colors.white, height: 1.25, fontSize: 13),
+            ),
           ] else ...[
-            BarraJuego(valor: validas / 3, color: Colores.violeta, alto: 10),
+            BarraJuego(valor: validas / 3, color: gestor.colorAcento, alto: 10),
             const SizedBox(height: 8),
             Text(
               validas == 2

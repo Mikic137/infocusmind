@@ -100,25 +100,23 @@ class _Zona extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TarjetaJuego(
-          borde: tarea.completa ? Colores.menta : Colores.bordeBrillante,
+          borde: tarea.completa ? Colores.menta : GestorTema.instancia.colorBorde,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: tarea.completa
-                      ? Colores.menta.withValues(alpha: 0.2)
-                      : Colores.sol.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(3),
+                  color: (tarea.completa ? Colores.menta : GestorTema.instancia.colorAcento).withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(GestorTema.instancia.esMaduro ? 6 : (GestorTema.instancia.esCalido ? 6 : 3)),
                   border: Border.all(
-                    color: tarea.completa ? Colores.menta : Colores.sol,
+                    color: tarea.completa ? Colores.menta : GestorTema.instancia.colorAcento,
                     width: 1,
                   ),
                 ),
                 child: Text(
                   tarea.completa ? 'COMPLETA' : 'EN RUTA',
-                  style: hud(7, color: tarea.completa ? Colores.menta : Colores.sol),
+                  style: hud(7, color: tarea.completa ? Colores.menta : GestorTema.instancia.colorAcento),
                 ),
               ),
               const SizedBox(width: 8),
@@ -127,22 +125,21 @@ class _Zona extends StatelessWidget {
                   tarea.titulo,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700, height: 1.1),
+                  style: fuenteTitulo(fontSize: 16, fontWeight: FontWeight.w700, height: 1.15),
                 ),
               ),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colores.noche,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colores.borde, width: 1),
+                  color: GestorTema.instancia.colorFondo,
+                  borderRadius: BorderRadius.circular(GestorTema.instancia.esMaduro ? 6 : (GestorTema.instancia.esCalido ? 6 : 4)),
+                  border: Border.all(color: GestorTema.instancia.colorBorde, width: 1),
                 ),
                 child: Text(
                   '${tarea.hechos}/$n',
                   style: hud(10,
-                      color: tarea.completa ? Colores.menta : Colores.sol),
+                      color: tarea.completa ? Colores.menta : (GestorTema.instancia.esMonocromo ? Colors.white : Colores.sol)),
                 ),
               ),
             ],
@@ -270,28 +267,34 @@ class _Nodo extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 4),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colores.cian,
-                borderRadius: BorderRadius.circular(3),
+                color: GestorTema.instancia.colorAcento,
+                borderRadius: BorderRadius.circular(GestorTema.instancia.esMaduro ? 6 : (GestorTema.instancia.esCalido ? 6 : 3)),
               ),
-              child: Text('¡AQUÍ!', style: hud(7, color: Colores.noche)),
+              child: Text(
+                '¡AQUÍ!',
+                style: hud(
+                  7,
+                  color: GestorTema.instancia.esMonocromo ? Colors.black : (GestorTema.instancia.esMaduro ? const Color(0xFF0F172A) : Colores.noche),
+                ),
+              ),
             ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
             decoration: BoxDecoration(
-              color: Colores.noche.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colores.borde, width: 1),
+              color: GestorTema.instancia.colorFondo.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(GestorTema.instancia.esMaduro ? 6 : (GestorTema.instancia.esCalido ? 6 : 4)),
+              border: Border.all(color: GestorTema.instancia.colorBorde, width: 1),
             ),
             child: Text(
               etiqueta,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: fuenteSubtitulo(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 height: 1.1,
-                color: estado == _Estado.hecho ? Colores.tenue : Colores.luna,
+                color: estado == _Estado.hecho ? Colores.tenue : Colors.white,
               ),
             ),
           ),

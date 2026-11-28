@@ -580,57 +580,59 @@ class _DistractionSettingsPageState extends State<DistractionSettingsPage> {
                       filtro.isEmpty ||
                       a.name.toLowerCase().contains(filtro) ||
                       a.package.toLowerCase().contains(filtro)))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: modoLista == 0
-                              ? (utiles.contains(app.package)
-                                  ? Colores.violeta.withValues(alpha: 0.18)
-                                  : Colores.nocheClara)
-                              : (distractoras.contains(app.package)
-                                  ? Colores.coral.withValues(alpha: 0.15)
-                                  : Colores.nocheClara),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: modoLista == 0
-                                ? (utiles.contains(app.package)
-                                    ? Colores.cian
-                                    : Colores.borde)
-                                : (distractoras.contains(app.package)
-                                    ? Colores.coral
-                                    : Colores.borde),
-                            width: 1.2,
-                          ),
-                        ),
-                        child: CheckboxListTile(
-                          dense: true,
-                          title: Text(
-                            app.name,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colores.luna,
+                    Builder(
+                      builder: (context) {
+                        final gestor = GestorTema.instancia;
+                        final activo = modoLista == 0
+                            ? utiles.contains(app.package)
+                            : distractoras.contains(app.package);
+                        final acento = modoLista == 0
+                            ? gestor.colorAcento
+                            : (gestor.esMonocromo ? Colors.white : Colores.coral);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: activo
+                                  ? acento.withValues(alpha: 0.16)
+                                  : gestor.colorSuperficie,
+                              borderRadius: BorderRadius.circular(
+                                gestor.esMaduro ? 12 : (gestor.esCalido ? 10 : (gestor.esMonocromo ? 4 : 6)),
+                              ),
+                              border: Border.all(
+                                color: activo ? acento : gestor.colorBorde,
+                                width: activo ? 1.5 : 1.0,
+                              ),
+                            ),
+                            child: CheckboxListTile(
+                              dense: true,
+                              title: Text(
+                                app.name,
+                                style: fuenteCuerpo(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: activo ? Colors.white : (gestor.esCalido ? const Color(0xFFE7E5E4) : Colores.luna),
+                                ),
+                              ),
+                              subtitle: Text(
+                                app.package,
+                                style: fuenteSubtitulo(color: Colores.tenue, fontSize: 10),
+                              ),
+                              activeColor: acento,
+                              checkColor: gestor.esMonocromo ? Colors.black : (gestor.esMaduro ? const Color(0xFF0F172A) : Colores.noche),
+                              value: activo,
+                              onChanged: (_) {
+                                if (modoLista == 0) {
+                                  alternarAppUtil(app.package);
+                                } else {
+                                  alternarAppDistractora(app.package);
+                                }
+                              },
                             ),
                           ),
-                          subtitle: Text(
-                            app.package,
-                            style: const TextStyle(color: Colores.tenue, fontSize: 10),
-                          ),
-                          activeColor: modoLista == 0 ? Colores.cian : Colores.coral,
-                          checkColor: Colores.noche,
-                          value: modoLista == 0
-                              ? utiles.contains(app.package)
-                              : distractoras.contains(app.package),
-                          onChanged: (_) {
-                            if (modoLista == 0) {
-                              alternarAppUtil(app.package);
-                            } else {
-                              alternarAppDistractora(app.package);
-                            }
-                          },
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ],
                 ],

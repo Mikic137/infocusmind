@@ -249,70 +249,67 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Widget fila(Tarea t, Paso p) {
+    final gestor = GestorTema.instancia;
     final esActual = !p.hecho && identical(p, t.siguiente);
+
+    final bgFila = esActual
+        ? (gestor.esMaduro
+            ? const Color(0xFF38BDF8).withValues(alpha: 0.12)
+            : (gestor.esCalido
+                ? const Color(0xFFF59E0B).withValues(alpha: 0.14)
+                : (gestor.esMonocromo
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colores.violeta.withValues(alpha: 0.16))))
+        : (p.hecho ? Colors.transparent : gestor.colorFondo.withValues(alpha: 0.5));
+
+    final bordeFila = esActual
+        ? gestor.colorAcento
+        : (p.hecho ? Colors.transparent : gestor.colorBorde);
+
+    final radioFila = gestor.esMaduro
+        ? 12.0
+        : (gestor.esCalido ? 10.0 : (gestor.esMonocromo ? 4.0 : 5.0));
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: esActual
-            ? Colores.violeta.withValues(alpha: 0.16)
-            : (p.hecho ? Colors.transparent : Colores.noche.withValues(alpha: 0.35)),
-        borderRadius: BorderRadius.circular(5),
+        color: bgFila,
+        borderRadius: BorderRadius.circular(radioFila),
         border: Border.all(
-          color: esActual
-              ? Colores.cian
-              : (p.hecho ? Colors.transparent : Colores.borde),
+          color: bordeFila,
           width: esActual ? 1.5 : 1.0,
         ),
       ),
       child: Row(
         children: [
-          // Checkbox cuadrado tipo pixel
-          GestureDetector(
-            onTap: () => marcar(t, p, !p.hecho),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: p.hecho ? Colores.menta : Colores.noche,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: p.hecho
-                      ? Colores.mentaSombra
-                      : (esActual ? Colores.cian : Colores.bordeBrillante),
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: p.hecho ? Colores.mentaSombra : Colores.sombraCarta,
-                    offset: const Offset(0, 2),
-                    blurRadius: 0,
-                  ),
-                ],
-              ),
-              child: p.hecho
-                  ? const Icon(Icons.check_rounded, size: 20, color: Colores.noche)
-                  : null,
-            ),
+          // Casilla de verificación adaptada a cada tema visual
+          CasillaTema(
+            valor: p.hecho,
+            onChanged: (val) => marcar(t, p, val),
+            tamano: 28,
+            colorActivo: gestor.esMaduro
+                ? const Color(0xFF38BDF8)
+                : (gestor.esCalido
+                    ? const Color(0xFFF59E0B)
+                    : (gestor.esMonocromo ? Colors.white : Colores.menta)),
           ),
           const SizedBox(width: 12),
-          // Título y Chips retro de Tiempo y XP
+          // Título y Chips con tipografía adaptativa
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   p.titulo,
-                  style: TextStyle(
+                  style: fuenteCuerpo(
                     fontSize: 15,
                     fontWeight: esActual ? FontWeight.w700 : FontWeight.w500,
                     height: 1.2,
                     color: p.hecho
                         ? Colores.tenue
-                        : (esActual ? Colores.luna : Colores.luna.withValues(alpha: 0.95)),
+                        : (esActual ? (gestor.esMonocromo ? Colors.white : gestor.colorAcento) : Colors.white),
                     decoration: p.hecho ? TextDecoration.lineThrough : null,
                   ),
                 ),
@@ -323,18 +320,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colores.noche,
-                        borderRadius: BorderRadius.circular(3),
-                        border: Border.all(color: Colores.borde, width: 1),
+                        color: gestor.colorFondo,
+                        borderRadius: BorderRadius.circular(gestor.esMaduro ? 6 : (gestor.esCalido ? 6 : 3)),
+                        border: Border.all(color: gestor.colorBorde, width: 1),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.schedule_rounded, size: 12, color: Colores.tenue),
+                          Icon(Icons.schedule_rounded, size: 12, color: gestor.esCalido ? const Color(0xFFA8A29E) : Colores.tenue),
                           const SizedBox(width: 4),
-                          Text('${p.minutos} min',
-                              style: const TextStyle(
-                                  color: Colores.tenue, fontSize: 11, fontWeight: FontWeight.w600)),
+                          Text(
+                            '${p.minutos} min',
+                            style: fuenteSubtitulo(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: gestor.esCalido ? const Color(0xFFA8A29E) : Colores.tenue,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -343,30 +345,44 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colores.sol.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(3),
-                        border: Border.all(color: Colores.sol.withValues(alpha: 0.7), width: 1),
+                        color: (gestor.esCalido ? const Color(0xFFF59E0B) : (gestor.esMonocromo ? Colors.white : Colores.sol)).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(gestor.esMaduro ? 6 : (gestor.esCalido ? 6 : 3)),
+                        border: Border.all(
+                          color: (gestor.esCalido ? const Color(0xFFF59E0B) : (gestor.esMonocromo ? Colors.white : Colores.sol)).withValues(alpha: 0.7),
+                          width: 1,
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.bolt_rounded, size: 13, color: Colores.sol),
+                          Icon(Icons.bolt_rounded, size: 13, color: gestor.esCalido ? const Color(0xFFF59E0B) : (gestor.esMonocromo ? Colors.white : Colores.sol)),
                           const SizedBox(width: 2),
-                          Text('+${p.minutos} XP',
-                              style: const TextStyle(
-                                  color: Colores.sol, fontSize: 11, fontWeight: FontWeight.w800)),
+                          Text(
+                            '+${p.minutos} XP',
+                            style: fuenteSubtitulo(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: gestor.esCalido ? const Color(0xFFF59E0B) : (gestor.esMonocromo ? Colors.white : Colores.sol),
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     if (esActual) ...[
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colores.cian,
-                          borderRadius: BorderRadius.circular(2),
+                          color: gestor.colorAcento,
+                          borderRadius: BorderRadius.circular(gestor.esMaduro ? 6 : (gestor.esCalido ? 6 : 2)),
                         ),
-                        child: Text('ACTUAL', style: hud(7, color: Colores.noche)),
+                        child: Text(
+                          'ACTUAL',
+                          style: hud(
+                            7,
+                            color: gestor.esMonocromo ? Colors.black : (gestor.esMaduro ? const Color(0xFF0F172A) : Colores.noche),
+                          ),
+                        ),
                       ),
                     ],
                   ],
@@ -375,7 +391,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             ),
           ),
           const SizedBox(width: 8),
-          // Botón Arcade de Iniciar Sesión con animación de pulso si es el actual
+          // Botón Iniciar Sesión con animación de pulso y diseño adaptativo
           if (!p.hecho)
             _PulsoBoton(
               activo: esActual,
@@ -386,23 +402,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: esActual ? Colores.sol : Colores.violeta,
-                    borderRadius: BorderRadius.circular(5),
+                    color: esActual
+                        ? (gestor.esMonocromo ? Colors.white : (gestor.esMaduro ? gestor.colorAcento : (gestor.esCalido ? const Color(0xFFF59E0B) : Colores.sol)))
+                        : (gestor.esMonocromo ? const Color(0xFF262626) : (gestor.esMaduro ? const Color(0xFF334155) : (gestor.esCalido ? const Color(0xFF443831) : Colores.violeta))),
+                    borderRadius: BorderRadius.circular(gestor.esMaduro ? 12 : (gestor.esCalido ? 10 : (gestor.esMonocromo ? 4 : 5))),
                     border: Border.all(
-                      color: Colors.black.withValues(alpha: 0.3),
+                      color: gestor.esMonocromo
+                          ? (esActual ? Colors.white : const Color(0xFF404040))
+                          : Colors.black.withValues(alpha: 0.3),
                       width: 1.5,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: esActual ? Colores.solSombra : Colores.violetaSombra,
-                        offset: const Offset(0, 3),
-                        blurRadius: 0,
-                      ),
-                    ],
+                    boxShadow: gestor.esArcade
+                        ? [
+                            BoxShadow(
+                              color: esActual ? Colores.solSombra : Colores.violetaSombra,
+                              offset: const Offset(0, 3),
+                              blurRadius: 0,
+                            ),
+                          ]
+                        : (gestor.esMaduro
+                            ? [
+                                BoxShadow(
+                                  color: esActual ? const Color(0xFF38BDF8).withValues(alpha: 0.4) : Colors.black26,
+                                  offset: const Offset(0, 3),
+                                  blurRadius: 8,
+                                ),
+                              ]
+                            : null),
                   ),
                   child: Icon(
                     Icons.play_arrow_rounded,
-                    color: esActual ? Colores.noche : Colors.white,
+                    color: esActual
+                        ? (gestor.esMonocromo ? Colors.black : (gestor.esMaduro ? const Color(0xFF0F172A) : Colores.noche))
+                        : Colors.white,
                     size: 26,
                   ),
                 ),
@@ -414,16 +446,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Widget tarjeta(Tarea t, {bool minimizada = false}) {
+    final gestor = GestorTema.instancia;
     final progreso = t.pasos.isEmpty ? 0.0 : t.hechos / t.pasos.length;
     final porcentaje = (progreso * 100).round();
     final expandida = !minimizada || _completadasExpandidas.contains(t.id);
+
+    final colorEstado = t.completa
+        ? (gestor.esMonocromo ? Colors.white : Colores.menta)
+        : (gestor.esMonocromo ? Colors.white : gestor.colorAcento);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TarjetaJuego(
         borde: t.completa
-            ? Colores.menta
-            : (t.siguiente != null ? Colores.bordeBrillante : Colores.borde),
+            ? (gestor.esMonocromo ? Colors.white : Colores.menta)
+            : (t.siguiente != null ? gestor.colorAcento : gestor.colorBorde),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -433,29 +470,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
-                    color: t.completa
-                        ? Colores.menta.withValues(alpha: 0.2)
-                        : Colores.cian.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(3),
+                    color: colorEstado.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(gestor.esMaduro ? 6 : (gestor.esCalido ? 6 : 3)),
                     border: Border.all(
-                      color: t.completa ? Colores.menta : Colores.cian,
+                      color: colorEstado,
                       width: 1,
                     ),
                   ),
                   child: Text(
                     t.completa ? 'LOGRADA' : 'MISIÓN',
-                    style: hud(8, color: t.completa ? Colores.menta : Colores.cian),
+                    style: hud(8, color: colorEstado),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     t.titulo,
-                    style: TextStyle(
-                      fontSize: 17,
+                    style: fuenteTitulo(
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
                       height: 1.15,
-                      color: t.completa ? Colores.luna.withValues(alpha: 0.85) : Colores.luna,
+                      color: t.completa
+                          ? Colores.tenue
+                          : (gestor.esMonocromo ? Colors.white : (gestor.esMaduro ? const Color(0xFFF8FAFC) : Colores.luna)),
                       decoration: t.completa ? TextDecoration.lineThrough : null,
                     ),
                   ),
@@ -464,7 +501,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   IconButton(
                     icon: Icon(
                       expandida ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                      color: Colores.menta,
+                      color: colorEstado,
                       size: 22,
                     ),
                     tooltip: expandida ? 'Plegar pasos' : 'Ver pasos',
@@ -480,8 +517,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   ),
                 ],
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined,
-                      color: Colores.cian, size: 20),
+                  icon: Icon(Icons.edit_outlined,
+                      color: gestor.colorAcento, size: 20),
                   tooltip: 'Editar misión',
                   onPressed: () => editarTarea(t),
                 ),
@@ -500,14 +537,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 Expanded(
                   child: BarraJuego(
                     valor: progreso,
-                    color: t.completa ? Colores.menta : Colores.cian,
+                    color: colorEstado,
                     alto: 6,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Text(
                   '$porcentaje%',
-                  style: hud(8, color: t.completa ? Colores.menta : Colores.sol),
+                  style: hud(8, color: t.completa ? colorEstado : (gestor.esMonocromo ? Colors.white : Colores.sol)),
                 ),
               ],
             ),
@@ -519,8 +556,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     t.completa
                         ? '¡Misión cumplida! ${t.hechos} de ${t.pasos.length} pasos (${t.minutosTotales} min foco)'
                         : '${t.hechos} de ${t.pasos.length} pasos completados (${t.minutosTotales} min foco)',
-                    style: TextStyle(
-                      color: t.completa ? Colores.menta : Colores.tenue,
+                    style: fuenteSubtitulo(
+                      color: t.completa ? colorEstado : (gestor.esCalido ? const Color(0xFFA8A29E) : Colores.tenue),
                       fontSize: 12,
                       fontWeight: t.completa ? FontWeight.w600 : FontWeight.normal,
                     ),
@@ -1122,11 +1159,15 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
 
   @override
   Widget build(BuildContext context) {
+    final gestor = GestorTema.instancia;
+    final radioDialogo = gestor.esMaduro ? 16.0 : (gestor.esCalido ? 14.0 : (gestor.esMonocromo ? 8.0 : 8.0));
+    final radioChip = gestor.esMaduro ? 8.0 : (gestor.esCalido ? 8.0 : (gestor.esMonocromo ? 4.0 : 5.0));
+
     return AlertDialog(
-      backgroundColor: Colores.nocheClara,
+      backgroundColor: gestor.colorSuperficie,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: const BorderSide(color: Colores.cian, width: 2),
+        borderRadius: BorderRadius.circular(radioDialogo),
+        side: BorderSide(color: gestor.colorAcento, width: gestor.esArcade ? 2 : 1.2),
       ),
       titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1135,16 +1176,16 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colores.violeta.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(6),
+              color: gestor.colorAcento.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(radioChip),
             ),
-            child: const Icon(Icons.edit_calendar_rounded, color: Colores.sol, size: 22),
+            child: Icon(Icons.edit_calendar_rounded, color: gestor.colorAcento, size: 22),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               widget.tareaAEditar != null ? 'EDITAR MISIÓN' : 'NUEVA MISIÓN',
-              style: hud(12, color: Colores.sol),
+              style: hud(12, color: gestor.colorAcento),
             ),
           ),
         ],
@@ -1166,7 +1207,7 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
                   hintText: 'Ej: Leer capítulo 3 de Historia',
                   counterText: '',
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.mic_rounded, color: Colores.cian),
+                    icon: Icon(Icons.mic_rounded, color: gestor.colorAcento),
                     tooltip: 'Dictar por voz (Interfaz Invisible)',
                     onPressed: () async {
                       final texto = await UsageService.escucharVoz(
@@ -1182,33 +1223,33 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
               const SizedBox(height: 14),
 
               // Selector de Fecha con Calendario
-              Text('FECHA DE REALIZACIÓN', style: hud(8, color: Colores.luna)),
+              Text('FECHA DE REALIZACIÓN', style: hud(8, color: Colors.white)),
               const SizedBox(height: 6),
               InkWell(
                 onTap: elegirFecha,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(radioChip),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colores.noche,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colores.bordeBrillante, width: 1.5),
+                    color: gestor.colorFondo,
+                    borderRadius: BorderRadius.circular(radioChip),
+                    border: Border.all(color: gestor.colorBorde, width: 1.5),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_month_rounded, color: Colores.cian, size: 20),
+                      Icon(Icons.calendar_month_rounded, color: gestor.colorAcento, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           textoFecha(fechaSeleccionada),
-                          style: const TextStyle(
-                            color: Colores.luna,
+                          style: fuenteCuerpo(
+                            color: Colors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
                           ),
                         ),
                       ),
-                      Text('CAMBIAR', style: hud(8, color: Colores.cian)),
+                      Text('CAMBIAR', style: hud(8, color: gestor.colorAcento)),
                     ],
                   ),
                 ),
@@ -1216,7 +1257,7 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
               const SizedBox(height: 14),
 
               // Selector de Duración / Tiempo
-              Text('DURACIÓN ESTIMADA', style: hud(8, color: Colores.luna)),
+              Text('DURACIÓN ESTIMADA', style: hud(8, color: Colors.white)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 6,
@@ -1234,19 +1275,19 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: (!duracionPersonalizada && minutosSeleccionados == d)
-                              ? Colores.violeta
-                              : Colores.noche,
-                          borderRadius: BorderRadius.circular(5),
+                              ? gestor.colorAcento.withValues(alpha: 0.25)
+                              : gestor.colorFondo,
+                          borderRadius: BorderRadius.circular(radioChip),
                           border: Border.all(
                             color: (!duracionPersonalizada && minutosSeleccionados == d)
-                                ? Colores.cian
-                                : Colores.borde,
+                                ? gestor.colorAcento
+                                : gestor.colorBorde,
                             width: 1.5,
                           ),
                         ),
                         child: Text(
                           '$d min',
-                          style: TextStyle(
+                          style: fuenteSubtitulo(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: (!duracionPersonalizada && minutosSeleccionados == d)
@@ -1263,16 +1304,16 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: duracionPersonalizada ? Colores.violeta : Colores.noche,
-                        borderRadius: BorderRadius.circular(5),
+                        color: duracionPersonalizada ? gestor.colorAcento.withValues(alpha: 0.25) : gestor.colorFondo,
+                        borderRadius: BorderRadius.circular(radioChip),
                         border: Border.all(
-                          color: duracionPersonalizada ? Colores.cian : Colores.borde,
+                          color: duracionPersonalizada ? gestor.colorAcento : gestor.colorBorde,
                           width: 1.5,
                         ),
                       ),
                       child: Text(
                         'Otro',
-                        style: TextStyle(
+                        style: fuenteSubtitulo(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: duracionPersonalizada ? Colors.white : Colores.tenue,
@@ -1310,8 +1351,8 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
                       });
                       agregarPasoManual();
                     },
-                    icon: const Icon(Icons.add, size: 16, color: Colores.cian),
-                    label: const Text('Añadir paso', style: TextStyle(color: Colores.cian, fontSize: 12)),
+                    icon: Icon(Icons.add, size: 16, color: gestor.colorAcento),
+                    label: Text('Añadir paso', style: TextStyle(color: gestor.colorAcento, fontSize: 12)),
                   ),
                 ],
               ),
@@ -1336,19 +1377,19 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6),
                           decoration: BoxDecoration(
-                            color: Colores.noche,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colores.borde),
+                            color: gestor.colorFondo,
+                            borderRadius: BorderRadius.circular(radioChip),
+                            border: Border.all(color: gestor.colorBorde),
                           ),
                           child: DropdownButton<int>(
                             value: pasosMinutos[i],
                             underline: const SizedBox(),
                             isDense: true,
-                            dropdownColor: Colores.nocheClara,
+                            dropdownColor: gestor.colorSuperficie,
                             items: [5, 10, 15, 20, 25, 30, 45]
                                 .map((m) => DropdownMenuItem(
                                       value: m,
-                                      child: Text('$m m', style: const TextStyle(fontSize: 12, color: Colores.luna)),
+                                      child: Text('$m m', style: const TextStyle(fontSize: 12, color: Colors.white)),
                                     ))
                                 .toList(),
                             onChanged: (v) {
@@ -1380,8 +1421,9 @@ class _DialogoNuevaMisionManualState extends State<_DialogoNuevaMisionManual> {
         ),
         FilledButton(
           style: FilledButton.styleFrom(
-            backgroundColor: Colores.violeta,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+            backgroundColor: gestor.colorSecundario,
+            foregroundColor: gestor.esMonocromo ? Colors.black : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radioChip)),
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           ),
           onPressed: guardar,

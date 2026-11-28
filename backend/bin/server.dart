@@ -627,10 +627,10 @@ void main() async {
   // Paquete de datos dinámicos estilo Dragon Ball Legends (Solo descarga datos, no reinstala la app)
   router.get('/app/data-sync', (Request request) async {
     return json(200, {
-      'data_version': 7,
-      'size_kb': 42,
-      'title': 'Parche de Datos v1.1.6',
-      'description': 'Reglas actualizadas de bloqueo web (m.youtube.com, youtu.be, redes), cuotas de estudio y optimizaciones de IA.',
+      'data_version': 10,
+      'size_kb': 48,
+      'title': 'Parche de Datos y Temas v1.1.8',
+      'description': 'Nuevos estilos visuales (Juvenil, Maduro, Cálido, Monocromo), casillas adaptativas y optimizaciones de bloqueo.',
       'blocked_domains': [
         'youtube.com',
         'm.youtube.com',

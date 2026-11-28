@@ -483,8 +483,10 @@ Future<Response> handleLanding(Request request) async {
       <nav class="nav-links">
         <a href="#caracteristicas" class="nav-link">Características</a>
         <a href="#launcher" class="nav-link">Modo Launcher</a>
-        <a href="#instalacion" class="nav-link">Instalación</a>
-        <a href="$downloadHref" class="btn-nav">Descargar APK v1.1.4</a>
+        <a href="/docs" class="nav-link" style="color:var(--cian);font-weight:700;">Documentación</a>
+        <a href="/manual-usuario" class="nav-link">Manual Usuario</a>
+        <a href="/manual-tecnico" class="nav-link">Manual Técnico</a>
+        <a href="$downloadHref" class="btn-nav">Descargar APK v1.1.8</a>
       </nav>
     </div>
   </header>
@@ -492,7 +494,7 @@ Future<Response> handleLanding(Request request) async {
   <!-- Hero Section -->
   <main class="hero">
     <div class="badge-hero">
-      <span>⚡ NUEVA VERSIÓN</span> InfocusMind v1.1.4 Oficial ya disponible
+      <span>⚡ NUEVA VERSIÓN</span> InfocusMind v1.1.8 Oficial ya disponible
     </div>
     <h1 class="hero-title">
       Convierte tu estudio en un videojuego y <span class="gradient-text">derrota las distracciones</span>
@@ -502,9 +504,9 @@ Future<Response> handleLanding(Request request) async {
     </p>
 
     <div class="cta-group">
-      <a href="$downloadHref" class="btn-download" download="InfocusMind_v1.1.3.apk">
+      <a href="$downloadHref" class="btn-download" download="InfocusMind_v1.1.8.apk">
         <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
-        Descargar APK v1.1.3 Directo
+        Descargar APK v1.1.8 Directo
       </a>
       <a href="#instalacion" class="btn-secondary">
         ¿Cómo instalar en Android?
@@ -676,7 +678,9 @@ Future<Response> handleLanding(Request request) async {
     <div class="footer-links">
       <a href="#">Inicio</a>
       <a href="#caracteristicas">Características</a>
-      <a href="#instalacion">Instalación</a>
+      <a href="/docs" style="color:var(--cian);">Documentación</a>
+      <a href="/manual-usuario">Manual de Usuario</a>
+      <a href="/manual-tecnico">Manual Técnico</a>
       <a href="/privacy">Privacidad</a>
       <a href="https://github.com/Mikic137/infocusmind" target="_blank" rel="noopener">GitHub</a>
     </div>

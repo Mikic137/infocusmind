@@ -13,6 +13,7 @@ import 'landing_handler.dart';
 import 'seed_handler.dart';
 import 'paypal_handler.dart';
 import 'email_service.dart';
+import 'docs_handler.dart';
 
 final env = Platform.environment;
 
@@ -481,6 +482,11 @@ void main() async {
 
   // Politica de privacidad
   router.get('/privacy', (Request req) => handlePrivacy(req));
+
+  // Documentación Oficial y Manuales
+  router.get('/docs', (Request req) => handleDocsIndex(req));
+  router.get('/manual-usuario', (Request req) => handleUserManual(req));
+  router.get('/manual-tecnico', (Request req) => handleTechnicalManual(req));
 
   // Descarga directa del APK de la aplicacion
   Response _redirigirDescargaApk() {
@@ -2066,6 +2072,8 @@ void main() async {
         p.startsWith('descargar') ||
         p.startsWith('apk') ||
         p.startsWith('privacy') ||
+        p.startsWith('docs') ||
+        p.startsWith('manual') ||
         p.startsWith('app/version') ||
         p.startsWith('app/data-sync') ||
         p.startsWith('auth/recover') ||
